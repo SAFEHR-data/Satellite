@@ -13,9 +13,15 @@ import logging
 import coloredlogs
 
 from fake import fake
-from constants import *
 from dataclasses import dataclass
+from typing import List
 from pathlib import Path
+
+
+N_TABLE_ROWS = {
+    "default": 2,
+    # Add table names here (snake_case) with associated sizes
+}
 
 
 logger = logging.getLogger(__name__)
@@ -46,8 +52,23 @@ class Column:
 
     @property
     def sql_type(self) -> str:
-        # TODO
-        raise NotImplementedError
+
+        java_to_sql_type_map = {
+            "long": "bigint",
+            "string": "text",
+            "instant": "timestamptz",
+            "boolean": "boolean",
+            "double": "real",
+            "localdate": "date",
+            "byte[]": "bytea"
+        }
+
+        if self.java_type.lower() in java_to_sql_type_map:
+            return java_to_sql_type_map[self.java_type.lower()]
+        else:
+            logger.error(f"Failed to determine the derived type from {self.java_type} "
+                         f"for {self.name}, defaulting to text")
+            return "text"
 
     def __hash__(self):
         return hash(self.name)
@@ -67,8 +88,9 @@ class Table:
 
         passed_class_definition = False
 
-        # If a line includes any of these characters it will be skipped
-        excluded_chars = ("@", "*", "(", "=")
+        # If a line includes any of these substrings it will be skipped
+        # note all Lists are e.g. one<->many relationships
+        excluded_substrings = ("@", "*", "(", "=", "List")
 
         # Strings that define if a class attribute is being defined
         delc_strings = ("private", "public", "protected")
@@ -88,10 +110,12 @@ class Table:
 
             if (not passed_class_definition
                     or depth != 1
-                    or any(char in line for char in excluded_chars)
+                    or any(s in line for s in excluded_substrings)
                     or not any(s in line for s in delc_strings)):
                 continue
 
+            # e.g. line = "private Instant storedFrom;"
+            line = line.strip().rstrip(";")
             java_type, attr_name = line.split()[-2:]
 
             # All attributes that end with Id are foreign keys, thus just ints
@@ -99,7 +123,7 @@ class Table:
                 java_type = "Long"
 
             column = Column(
-                name=_camel_to_snake_case(attr_name.rstrip(";")),
+                name=_camel_to_snake_case(attr_name),
                 java_type=java_type
             )
 
@@ -120,16 +144,22 @@ class Table:
         for column, values in self.data.items():
             logger.info(f"Creating random data for {column}")
 
+            if hasattr(fake, column.name):        # match for specific column e.g. mrn
+                faker_method = getattr(fake, column.name)
+
+            elif hasattr(fake, column.sql_type):  # match for the type of column
+                faker_method = getattr(fake, column.sql_type)
+            else:
+                faker_method = fake.default       # Random string
+
             for _ in range(self.n_rows):
-
-                try:
-                    value = getattr(fake, column.name)()
-                except AttributeError:
-                    value = fake.bothify("??????")  # Random string
-
-                values.append(value)
+                values.append(faker_method())
 
         return None
+
+    @property
+    def columns(self) -> List[Column]:
+        return list(self.data.keys())
 
 
 class Database:
@@ -149,10 +179,11 @@ class Database:
             f"password={_env_var('STAR_PASSWORD')} "
             f"host={_env_var('STAR_HOST')}"
         )
+        print(connection_string)
         return pypg.connect(connection_string)
 
 
-class FakeDatabase(Database):
+class FakeStarDatabase(Database):
     """Fake database wrapper"""
 
     @property
@@ -169,30 +200,28 @@ class FakeDatabase(Database):
     def create_empty_table_for(self, table: Table) -> None:
         """Create a table for a set of data. Drop it if it exists"""
 
-        cols = ",".join([table.col_name_to_name_and_sql_type(c)
-                         for c in table.columns])
+        cols = ",".join([f"{c.name} {c.sql_type}" for c in table.columns])
 
         self._cursor.execute(
-            f"CREATE TABLE {self.schema_name}.{table.name}"
-            f"({table.name}_id serial PRIMARY KEY, {cols});"
+            f"CREATE TABLE {self.schema_name}.{table.name} ({cols});"
         )
 
     def add(self, table: Table) -> None:
         """Addd a table to the schema"""
-        print(f"Adding table: {table.name}")
+        logger.info(f"Adding table: {table.name}")
         self.create_empty_table_for(table)
 
-        cols = ",".join(table.columns)
-        vals = ",".join("%s" for _ in range(len(table.columns)))
+        for column in table.columns:
 
-        for _, row in table.astype('object').iterrows():
-
-            self._cursor.execute(
-                f"INSERT INTO {self.schema_name}.{table.name} ({cols}) VALUES ({vals})",
-                row.values,
-            )
+            for value in table.data[column]:
+                self._cursor.execute(
+                    f"INSERT INTO {self.schema_name}.{table.name} "
+                    f"({column.name}) VALUES (%s)",
+                    [value]
+                )
 
         self._connection.commit()
+        return None
 
 
 class StarTables(list):
@@ -233,8 +262,8 @@ class StarTables(list):
 )
 def main(branch: str):
 
-    # db = FakeDatabase()
-    # db.create_schema()
+    db = FakeStarDatabase()
+    db.create_schema()
 
     tables = StarTables.from_repo(
         repo_url="https://github.com/inform-health-informatics/Inform-DB",
@@ -243,11 +272,9 @@ def main(branch: str):
 
     for table in tables:
         table.add_fake_data()
-        print(table.data)
-        break
-        # db.add(table)
+        db.add(table)
 
-    print("Successfully created fake tables!")
+    logger.info("Successfully created fake tables!")
     return None
 
 

@@ -10,7 +10,7 @@ RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 RUN  apt-get autoremove && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir fake_data/
-COPY requirements.txt /fake_data/
+COPY *.py requirements.txt /fake_data/
 WORKDIR /fake_data/
 
 RUN pip install -U pip wheel setuptools \
