@@ -236,7 +236,7 @@ class Database:
         self._cursor = self._connection.cursor()
 
     @staticmethod
-    def _create_connection() -> pypg.connection:
+    def _create_connection() -> "pypg.connection":
 
         connection_string = (
             f"dbname={_env_var('STAR_DB_NAME')} "

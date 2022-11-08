@@ -46,4 +46,4 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    command: bash -c "python add_test_tables.py" #|| true && sleep infinity"
+    command: bash -c "python add_tables.py"
