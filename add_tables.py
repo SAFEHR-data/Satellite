@@ -304,7 +304,7 @@ class StarTables(list):
 
         self = cls()
 
-        for path in Path("star_repo/inform-db/src/main").rglob(f"**/*.java"):
+        for path in Path("star_repo/inform-db/src/main").rglob("**/*.java"):
             if any(path.name.endswith(suffix) for suffix in excluded_suffixes):
                 continue
 

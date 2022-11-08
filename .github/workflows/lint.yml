@@ -41,7 +41,7 @@ jobs:
           persist-credentials: false
 
       - name: Ensure copyright and license header are present
-        run: ./devops/scripts/check_src_headers.sh
+        run: ./.github/linters/check_headers_exist.sh
 
       - name: Lint code base
         uses: github/super-linter/slim@v4.9.7
