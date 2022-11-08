@@ -1,0 +1,7 @@
+numpy
+pydicom
+psycopg2
+faker
+GitPython
+click
+coloredlogs

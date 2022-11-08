@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+
+  fake_emap_uds:
+    image: "postgres:latest"
+    container_name: fake_uds
+    ports:
+      - ${STAR_PORT}:5432
+    env_file:
+      - .env.test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  fake_data:
+    image: pixl-sandbox
+    container_name: pixl_sandbox
+    depends_on:
+      - fake_emap_uds
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: bash -c "python add_test_dicom.py"
