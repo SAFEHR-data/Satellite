@@ -1,3 +1,4 @@
+#!/bin/bash
 #  Copyright (c) University College London Hospitals NHS Foundation Trust
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,20 +12,15 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
-FROM python:3.10.6-slim-bullseye
-SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 
-RUN export DEBIAN_FRONTEND=noninteractive && \
-    apt-get update && \
-    apt-get install --yes --no-install-recommends procps ca-certificates \
-    iproute2 git curl libpq-dev gnupg g++ locales postgresql-client \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
-
-RUN mkdir fake_data/
-COPY *.py requirements.txt /fake_data/
-WORKDIR /fake_data/
-
-RUN pip install --no-cache-dir -r requirements.txt
+for ext in ".yml" ".yaml" ".sh" "Dockerfile" ".py"
+do
+    # shellcheck disable=SC2044
+    for path in $(find . -name "*$ext")
+    do
+        if ! grep -q "Copyright" "$path"; then
+            echo -e "\n\e[31m»»» ⚠️  No copyright/license header in $path"
+            exit 1
+        fi
+    done || exit 1
+done

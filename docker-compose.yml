@@ -11,6 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
+---
 version: "3.9"
 
 services:
@@ -23,7 +24,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
       timeout: 30s
       retries: 5
