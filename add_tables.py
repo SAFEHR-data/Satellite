@@ -6,13 +6,15 @@ set
 """
 import os
 import re
-import click
 import git
 import psycopg2 as pypg
 import logging
 import coloredlogs
+import faker
 
-from fake import fake
+from faker.providers import BaseProvider
+from faker.providers.date_time import Provider as FakerDTProvider
+from datetime import datetime, date
 from dataclasses import dataclass
 from typing import List
 from pathlib import Path
@@ -32,17 +34,73 @@ def _env_var(key: str) -> str:
     """Get an environment variable and raise a helpful exception if it's not"""
 
     if (value := os.environ.get(key, None)) is None:
-        raise RuntimeError(f"Failed to find ${key}. Ensure it is set as "
-                           f"an environment variable")
+        raise RuntimeError(
+            f"Failed to find ${key}. Ensure it is set as " f"an environment variable"
+        )
     return value
 
 
 # from: https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case
-_camel_case_pattern = re.compile(r'(?<!^)(?=[A-Z])')
+_camel_case_pattern = re.compile(r"(?<!^)(?=[A-Z])")
 
 
 def _camel_to_snake_case(string: str) -> str:
-    return _camel_case_pattern.sub('_', string).lower()
+    return _camel_case_pattern.sub("_", string).lower()
+
+
+class Faker(faker.Faker):
+    """Custom Faker"""
+
+    @classmethod
+    def with_providers(cls, *providers):
+        """Create a Faker instance with a set of providers"""
+
+        self = cls()
+        for provider in providers:
+            self.add_provider(provider)
+
+        return self
+
+
+class StarBaseProvider(BaseProvider):
+    """
+    Provider for fake data in an EMAP star schema.
+    The provider methods must be named as snake_case version of the
+    column names or as the postgres sql types that will be used, the
+    latter used as a fallback
+    """
+
+    @staticmethod
+    def default() -> str:
+        return Faker().bothify("??????")
+
+    def mrn(self) -> str:
+        return self.bothify("#########")
+
+    def bigint(self) -> int:
+        return self.random_int()
+
+    def text(self) -> str:
+        return self.bothify("?????")
+
+    def boolean(self) -> bool:
+        return bool(self.random_int(0, 1))
+
+    def real(self) -> float:
+        return float(self.random_int(0, 1000)) / 100.0
+
+    def bytes(self) -> bytes:
+        return self.default().encode()
+
+
+class StarDatetimeProvider(FakerDTProvider):
+    def timestamptz(self) -> datetime:
+        return self.date_time()
+
+    def date(self) -> date:
+        return self.date_between(
+            date.fromisoformat("1970-01-01"), date.fromisoformat("2022-01-01")
+        )
 
 
 @dataclass
@@ -60,14 +118,16 @@ class Column:
             "boolean": "boolean",
             "double": "real",
             "localdate": "date",
-            "byte[]": "bytea"
+            "byte[]": "bytea",
         }
 
         if self.java_type.lower() in java_to_sql_type_map:
             return java_to_sql_type_map[self.java_type.lower()]
         else:
-            logger.error(f"Failed to determine the derived type from {self.java_type} "
-                         f"for {self.name}, defaulting to text")
+            logger.error(
+                f"Failed to determine the derived type from {self.java_type} "
+                f"for {self.name}, defaulting to text"
+            )
             return "text"
 
     def __hash__(self):
@@ -75,7 +135,6 @@ class Column:
 
 
 class Table:
-
     def __init__(self, name: str):
         self.name = str(name)
         self.data = dict()  # Keyed with column names with a list of rows as a value
@@ -108,10 +167,12 @@ class Table:
                 passed_class_definition = True
                 continue
 
-            if (not passed_class_definition
-                    or depth != 1
-                    or any(s in line for s in excluded_substrings)
-                    or not any(s in line for s in delc_strings)):
+            if (
+                not passed_class_definition
+                or depth != 1
+                or any(s in line for s in excluded_substrings)
+                or not any(s in line for s in delc_strings)
+            ):
                 continue
 
             # e.g. line = "private Instant storedFrom;"
@@ -122,10 +183,7 @@ class Table:
             if attr_name.endswith("Id"):
                 java_type = "Long"
 
-            column = Column(
-                name=_camel_to_snake_case(attr_name),
-                java_type=java_type
-            )
+            column = Column(name=_camel_to_snake_case(attr_name), java_type=java_type)
 
             self.data[column] = []
 
@@ -138,19 +196,19 @@ class Table:
         else:
             return N_TABLE_ROWS["default"]
 
-    def add_fake_data(self) -> None:
+    def add_fake_data(self, fake: Faker) -> None:
         logger.info(f"Adding fake data to {self.name}")
 
         for column, values in self.data.items():
             logger.info(f"Creating random data for {column}")
 
-            if hasattr(fake, column.name):        # match for specific column e.g. mrn
+            if hasattr(fake, column.name):  # match for specific column e.g. mrn
                 faker_method = getattr(fake, column.name)
 
             elif hasattr(fake, column.sql_type):  # match for the type of column
                 faker_method = getattr(fake, column.sql_type)
             else:
-                faker_method = fake.default       # Random string
+                faker_method = fake.default  # Random string
 
             for _ in range(self.n_rows):
                 values.append(faker_method())
@@ -171,7 +229,7 @@ class Database:
         self._cursor = self._connection.cursor()
 
     @staticmethod
-    def _create_connection() -> "psycopg2.connection":
+    def _create_connection() -> pypg.connection:
 
         connection_string = (
             f"dbname={_env_var('STAR_DB_NAME')} "
@@ -179,7 +237,7 @@ class Database:
             f"password={_env_var('STAR_PASSWORD')} "
             f"host={_env_var('STAR_HOST')}"
         )
-        print(connection_string)
+        logger.debug(f"Connecting with {connection_string}")
         return pypg.connect(connection_string)
 
 
@@ -194,17 +252,17 @@ class FakeStarDatabase(Database):
         """Create the database schema"""
 
         self._cursor.execute(f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;")
-        self._cursor.execute(f"CREATE SCHEMA {self.schema_name}"
-                             f" AUTHORIZATION {_env_var('STAR_USER')};")
+        self._cursor.execute(
+            f"CREATE SCHEMA {self.schema_name}"
+            f" AUTHORIZATION {_env_var('STAR_USER')};"
+        )
 
     def create_empty_table_for(self, table: Table) -> None:
         """Create a table for a set of data. Drop it if it exists"""
 
         cols = ",".join([f"{c.name} {c.sql_type}" for c in table.columns])
 
-        self._cursor.execute(
-            f"CREATE TABLE {self.schema_name}.{table.name} ({cols});"
-        )
+        self._cursor.execute(f"CREATE TABLE {self.schema_name}.{table.name} ({cols});")
 
     def add(self, table: Table) -> None:
         """Addd a table to the schema"""
@@ -217,7 +275,7 @@ class FakeStarDatabase(Database):
                 self._cursor.execute(
                     f"INSERT INTO {self.schema_name}.{table.name} "
                     f"({column.name}) VALUES (%s)",
-                    [value]
+                    [value],
                 )
 
         self._connection.commit()
@@ -235,11 +293,7 @@ class StarTables(list):
 
         if not repo_path.exists():
             logger.info(f"Cloning {repo_path}")
-            _ = git.Repo.clone_from(
-                url=repo_url,
-                to_path=repo_path,
-                branch=branch_name
-            )
+            _ = git.Repo.clone_from(url=repo_url, to_path=repo_path, branch=branch_name)
 
         self = cls()
 
@@ -253,25 +307,21 @@ class StarTables(list):
         return self
 
 
-@click.command()
-@click.option(
-    "--branch",
-    type=str,
-    default="develop",
-    help="Branch of Inform-DB to clone"
-)
-def main(branch: str):
+def main():
 
     db = FakeStarDatabase()
     db.create_schema()
 
     tables = StarTables.from_repo(
         repo_url="https://github.com/inform-health-informatics/Inform-DB",
-        branch_name=branch
+        branch_name=_env_var("INFORMDB_BRANCH_NAME"),
     )
 
+    fake = Faker.with_providers(StarBaseProvider, StarDatetimeProvider)
+    Faker.seed(_env_var("FAKER_SEED"))
+
     for table in tables:
-        table.add_fake_data()
+        table.add_fake_data(fake)
         db.add(table)
 
     logger.info("Successfully created fake tables!")
