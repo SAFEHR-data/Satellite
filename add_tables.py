@@ -207,6 +207,10 @@ class Table:
         logger.info(f"Adding fake data to {self.name}")
 
         for column, values in self.data.items():
+
+            if column.name == self.primary_key_name:
+                continue  # This is just a serial index so no need to create fake values
+
             logger.info(f"Creating random data for {column}")
 
             if hasattr(fake, column.name):  # match for specific column e.g. mrn
@@ -224,7 +228,12 @@ class Table:
 
     @property
     def columns(self) -> List[Column]:
-        return list(self.data.keys())
+        return [column for column in self.data.keys()
+                if column.name != self.primary_key_name]
+
+    @property
+    def primary_key_name(self) -> str:
+        return f"{self.name}_id"
 
 
 class Database:
@@ -267,9 +276,11 @@ class FakeStarDatabase(Database):
     def create_empty_table_for(self, table: Table) -> None:
         """Create a table for a set of data. Drop it if it exists"""
 
-        cols = ",".join([f"{c.name} {c.sql_type}" for c in table.columns])
+        columns_name_and_type = ",".join([f"{c.name} {c.sql_type}" for c in table.columns])
 
-        self._cursor.execute(f"CREATE TABLE {self.schema_name}.{table.name} ({cols});")
+        self._cursor.execute(f"CREATE TABLE {self.schema_name}.{table.name} "
+                             f"({table.primary_key_name} serial PRIMARY KEY, "
+                             f"{columns_name_and_type});")
 
     def add(self, table: Table) -> None:
         """Addd a table to the schema"""

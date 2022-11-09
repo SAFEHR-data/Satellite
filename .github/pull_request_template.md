@@ -1,7 +1,7 @@
 # Resolves _#ISSUE_
 
 <!--
-Describe the current behavior you are modifying. Please also remember to
+Describe the current behaviour you are modifying. Please also remember to
 update any impacted documentation.
 -->
 
