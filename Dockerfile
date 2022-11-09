@@ -22,6 +22,12 @@ ARG INFORMDB_BRANCH_NAME=develop
 ARG STAR_SCHEMA_NAME=star
 ARG FAKER_SEED=0
 ARG TIMEZONE="Europe/London"
+ARG TAG="0.0.1"
+
+# Github credentials to be able to clone the fake-star repo
+# TODO: remove when this repo is public
+ARG GITHUB_USER
+ARG GITHUB_PASSWORD
 
 # OS setup
 RUN apt-get update && \
@@ -33,13 +39,9 @@ RUN apt-get update && \
 
 RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
-# Define github credentials to be able to clone the fake-star repo
-ARG GIT_USER
-ARG GIT_PASSWORD
-
 # Create .sql file that will be used to initallly populate the database
-RUN git clone --depth 1 --branch 0.0.1 \
-     https://${GIT_USER}:${GIT_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
+RUN git clone --depth 1 --branch ${TAG} \
+     https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r fake-star/requirements.txt
 
