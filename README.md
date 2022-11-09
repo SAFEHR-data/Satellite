@@ -1,6 +1,6 @@
 # fake-star
 
-Use in a Docker compose file as:
+Use in a Docker compose file like:
 ```yaml
   star:
     image: fake-star
@@ -16,4 +16,6 @@ Use in a Docker compose file as:
       args:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: postgres
+        GIT_USER: <your-github-username>
+        GIT_PASSWORD: <a-github-PAT>
 ```

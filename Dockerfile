@@ -13,7 +13,7 @@
 # limitations under the License.
 FROM postgres:15.0-bullseye
 
-# Required envrionment variables
+# Required arguments
 ARG POSTGRES_USER=postgres
 ARG POSTGRES_PASSWORD=postgres
 ARG N_TABLE_ROWS=2
@@ -21,6 +21,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG INFORMDB_BRANCH_NAME=develop
 ARG STAR_SCHEMA_NAME=star
 ARG FAKER_SEED=0
+ARG TIMEZONE="Europe/London"
 
 # OS setup
 RUN apt-get update && \
@@ -37,14 +38,21 @@ ARG GIT_USER
 ARG GIT_PASSWORD
 
 # Create .sql file that will be used to initallly populate the database
-RUN git clone https://${GIT_USER}:${GIT_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
+RUN git clone --depth 1 --branch 0.0.1 \
+     https://${GIT_USER}:${GIT_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r fake-star/requirements.txt
 
 WORKDIR /fake-star/
-RUN git checkout t-young31/issue4  # TODO: remove
-RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql && \
+RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql
 
 # Clean up repo and Python
 RUN rm -rf /fake-star
-RUN apt-get --purge autoremove python3.9 python3-pip
+RUN apt-get --yes --purge autoremove python3.9 python3-pip
+
+# Export the variables to the runtime of the container
+ENV POSTGRES_USER ${POSTGRES_USER}
+ENV POSTGRES_PASSWORD ${POSTGRES_PASSWORD}
+ENV TIMEZONE ${TZ}
+ENV LANG=en_GB.UTF-8
+ENV LC_ALL=en_GB.UTF-8
