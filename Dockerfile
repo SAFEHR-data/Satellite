@@ -11,20 +11,50 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
-FROM python:3.10.6-slim-bullseye
-SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
+FROM postgres:15.0-bullseye
 
-RUN export DEBIAN_FRONTEND=noninteractive && \
-    apt-get update && \
-    apt-get install --yes --no-install-recommends procps ca-certificates \
-    iproute2 git curl libpq-dev gnupg g++ locales postgresql-client \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Required arguments
+ARG POSTGRES_USER=postgres
+ARG POSTGRES_PASSWORD=postgres
+ARG N_TABLE_ROWS=2
+ARG DEBIAN_FRONTEND=noninteractive
+ARG INFORMDB_BRANCH_NAME=develop
+ARG STAR_SCHEMA_NAME=star
+ARG FAKER_SEED=0
+ARG TIMEZONE="Europe/London"
+ARG TAG="0.0.1"
+
+# Github credentials to be able to clone the fake-star repo
+# TODO: remove when this repo is public
+ARG GITHUB_USER
+ARG GITHUB_PASSWORD
+
+# OS setup
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends \
+    procps ca-certificates locales python3.9-dev python3-pip git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
-RUN mkdir fake_data/
-COPY *.py requirements.txt /fake_data/
-WORKDIR /fake_data/
+# Create .sql file that will be used to initallly populate the database
+RUN git clone --depth 1 --branch ${TAG} \
+     https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
+    pip install --no-cache-dir --upgrade pip==22.3.1 && \
+    pip install --no-cache-dir -r fake-star/requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
+WORKDIR /fake-star/
+RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql
+
+# Clean up repo and Python
+# hadolint ignore=DL3059
+RUN rm -rf /fake-star && \
+    apt-get --yes --purge autoremove python3.9 python3-pip
+
+# Export the variables to the runtime of the container
+ENV POSTGRES_USER ${POSTGRES_USER}
+ENV POSTGRES_PASSWORD ${POSTGRES_PASSWORD}
+ENV TIMEZONE ${TZ}
+ENV LANG=en_GB.UTF-8
+ENV LC_ALL=en_GB.UTF-8
