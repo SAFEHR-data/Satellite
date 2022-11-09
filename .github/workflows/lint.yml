@@ -59,4 +59,4 @@ jobs:
       # TODO: remove when using gh-hosted runners
       - name: Clean up directory
         if: ${{ !cancelled() && (success() || failure()) }}
-        run: sudo find ${{ github.workspace }} -group root -delete
+        run: sudo find ${{ github.workspace }} -user root -delete

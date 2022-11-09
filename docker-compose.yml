@@ -44,7 +44,7 @@ services:
         target: /fake_data/wd
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.fake_data
     env_file:
       - .env
     command: bash -c "python add_tables.py"

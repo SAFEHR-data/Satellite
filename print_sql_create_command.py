@@ -27,12 +27,6 @@ from typing import List
 from pathlib import Path
 
 
-N_TABLE_ROWS = {
-    "default": 2,
-    # Add table names here (snake_case) with associated sizes
-}
-
-
 logger = logging.getLogger(__name__)
 coloredlogs.install(level=logging.INFO, logger=logger)
 
@@ -140,6 +134,17 @@ class Column:
     def __hash__(self):
         return hash(self.name)
 
+    @property
+    def format_specifier(self):
+        if self.sql_type == "text":
+            return "'%s'"
+        elif self.sql_type == "timestamptz" or self.sql_type == "date":
+            return "timestamp '%s'"
+        elif self.sql_type == "bytea":
+            return "E'%s'"
+
+        return "%s"
+
 
 class Table:
     def __init__(self, name: str):
@@ -198,10 +203,8 @@ class Table:
 
     @property
     def n_rows(self) -> int:
-        if self.name in N_TABLE_ROWS:
-            return N_TABLE_ROWS[self.name]
-        else:
-            return N_TABLE_ROWS["default"]
+        # TODO: more granular configuration
+        return int(_env_var("N_TABLE_ROWS"))
 
     def add_fake_data(self, fake: Faker) -> None:
         logger.info(f"Adding fake data to {self.name}")
@@ -236,68 +239,48 @@ class Table:
         return f"{self.name}_id"
 
 
-class Database:
-    """Fake database wrapper"""
-
-    def __init__(self):
-
-        self._connection = self._create_connection()
-        self._cursor = self._connection.cursor()
-
-    @staticmethod
-    def _create_connection() -> "pypg.connection":
-
-        connection_string = (
-            f"dbname={_env_var('STAR_DB_NAME')} "
-            f"user={_env_var('STAR_USER')} "
-            f"password={_env_var('STAR_PASSWORD')} "
-            f"host={_env_var('STAR_HOST')}"
-        )
-        logger.debug(f"Connecting with {connection_string}")
-        return pypg.connect(connection_string)
-
-
-class FakeStarDatabase(Database):
+class FakeStarDatabase:
     """Fake database wrapper"""
 
     @property
     def schema_name(self) -> str:
         return _env_var("STAR_SCHEMA_NAME")
 
-    def create_schema(self) -> None:
+    @property
+    def schema_create_command(self) -> str:
         """Create the database schema"""
 
-        self._cursor.execute(f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;")
-        self._cursor.execute(
-            f"CREATE SCHEMA {self.schema_name}"
-            f" AUTHORIZATION {_env_var('STAR_USER')};"
-        )
+        return (f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;\n"
+                f"CREATE SCHEMA {self.schema_name} "
+                f"AUTHORIZATION {_env_var('STAR_USER')};\n")
 
-    def create_empty_table_for(self, table: Table) -> None:
+    def empty_table_create_command_for(self, table: Table) -> str:
         """Create a table for a set of data. Drop it if it exists"""
 
         columns_name_and_type = ",".join([f"{c.name} {c.sql_type}" for c in table.columns])
 
-        self._cursor.execute(f"CREATE TABLE {self.schema_name}.{table.name} "
-                             f"({table.primary_key_name} serial PRIMARY KEY, "
-                             f"{columns_name_and_type});")
+        return (f"CREATE TABLE {self.schema_name}.{table.name} "
+                f"({table.primary_key_name} serial PRIMARY KEY, "
+                f"{columns_name_and_type});\n")
 
-    def add(self, table: Table) -> None:
+    def add_data_command_for(self, table: Table) -> str:
         """Addd a table to the schema"""
-        logger.info(f"Adding table: {table.name}")
-        self.create_empty_table_for(table)
+        logger.info(f"Adding table data: {table.name}")
 
-        for column in table.columns:
+        string = ""
+        col_names = ",".join(col.name for col in table.columns)
 
-            for value in table.data[column]:
-                self._cursor.execute(
-                    f"INSERT INTO {self.schema_name}.{table.name} "
-                    f"({column.name}) VALUES (%s)",
-                    [value],
-                )
+        for i in range(table.n_rows):
 
-        self._connection.commit()
-        return None
+            values = ",".join(column.format_specifier % table.data[column][i]
+                              for column in table.columns)
+
+            string += (
+                f"INSERT INTO {self.schema_name}.{table.name} "
+                f"({col_names}) VALUES ({values});\n"
+            )
+
+        return string
 
 
 class StarTables(list):
@@ -328,7 +311,6 @@ class StarTables(list):
 def main():
 
     db = FakeStarDatabase()
-    db.create_schema()
 
     tables = StarTables.from_repo(
         repo_url="https://github.com/inform-health-informatics/Inform-DB",
@@ -338,11 +320,16 @@ def main():
     fake = Faker.with_providers(StarBaseProvider, StarDatetimeProvider)
     Faker.seed(_env_var("FAKER_SEED"))
 
+    print(db.schema_create_command)
+
     for table in tables:
         table.add_fake_data(fake)
-        db.add(table)
+        print(
+            db.empty_table_create_command_for(table),
+            db.add_data_command_for(table)
+        )
 
-    logger.info("Successfully created fake tables!")
+    logger.info("Successfully printed fake tables")
     return None
 
 
