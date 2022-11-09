@@ -5,6 +5,9 @@ ARG POSTGRES_USER=postgres
 ARG POSTGRES_PASSWORD=postgres
 ARG N_TABLE_ROWS=2
 ARG DEBIAN_FRONTEND=noninteractive
+ARG INFORMDB_BRANCH_NAME=develop
+ARG STAR_SCHEMA_NAME=star
+ARG FAKER_SEED=0
 
 # OS setup
 RUN apt-get update && \
@@ -17,17 +20,18 @@ RUN apt-get update && \
 RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
 # Define github credentials to be able to clone the fake-star repo
-ARG GIT_USER=
-ARG GIT_PASSWORD=
+ARG GIT_USER
+ARG GIT_PASSWORD
 
 # Create .sql file that will be used to initallly populate the database
 RUN git clone https://${GIT_USER}:${GIT_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
     pip install --upgrade pip && \
-    pip install --no-cache-dir -r fake_star/requirements.txt && \
+    pip install --no-cache-dir -r fake-star/requirements.txt
 
-WORKDIR /fake_data/fake_star/
-RUN python print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql && \
+WORKDIR /fake-star/
+RUN git checkout t-young31/issue4  # TODO: remove
+RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql && \
 
 # Clean up repo and Python
-RUN rm -rf fake-star
+RUN rm -rf /fake-star
 RUN apt-get --purge autoremove python3.9 python3-pip

@@ -252,7 +252,7 @@ class FakeStarDatabase:
 
         return (f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;\n"
                 f"CREATE SCHEMA {self.schema_name} "
-                f"AUTHORIZATION {_env_var('STAR_USER')};\n")
+                f"AUTHORIZATION {_env_var('POSTGRES_USER')};\n")
 
     def empty_table_create_command_for(self, table: Table) -> str:
         """Create a table for a set of data. Drop it if it exists"""
