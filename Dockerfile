@@ -48,8 +48,9 @@ WORKDIR /fake-star/
 RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql
 
 # Clean up repo and Python
-RUN rm -rf /fake-star
-RUN apt-get --yes --purge autoremove python3.9 python3-pip
+# hadolint ignore=DL3059
+RUN rm -rf /fake-star && \
+    apt-get --yes --purge autoremove python3.9 python3-pip
 
 # Export the variables to the runtime of the container
 ENV POSTGRES_USER ${POSTGRES_USER}
