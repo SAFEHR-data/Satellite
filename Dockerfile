@@ -32,17 +32,16 @@ ARG GITHUB_PASSWORD
 # OS setup
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
-    procps ca-certificates locales python3.9-dev python3-pip git  \
-    gnupg libpq-dev g++ postgresql-client \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    procps ca-certificates locales python3.9-dev python3-pip git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
 # Create .sql file that will be used to initallly populate the database
 RUN git clone --depth 1 --branch ${TAG} \
      https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
-    pip install --upgrade pip && \
+    pip install --no-cache-dir --upgrade pip==22.3.1 && \
     pip install --no-cache-dir -r fake-star/requirements.txt
 
 WORKDIR /fake-star/

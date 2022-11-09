@@ -14,7 +14,6 @@
 import os
 import re
 import git
-import psycopg2 as pypg
 import logging
 import coloredlogs
 import faker
@@ -231,8 +230,11 @@ class Table:
 
     @property
     def columns(self) -> List[Column]:
-        return [column for column in self.data.keys()
-                if column.name != self.primary_key_name]
+        return [
+            column
+            for column in self.data.keys()
+            if column.name != self.primary_key_name
+        ]
 
     @property
     def primary_key_name(self) -> str:
@@ -250,18 +252,24 @@ class FakeStarDatabase:
     def schema_create_command(self) -> str:
         """Create the database schema"""
 
-        return (f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;\n"
-                f"CREATE SCHEMA {self.schema_name} "
-                f"AUTHORIZATION {_env_var('POSTGRES_USER')};\n")
+        return (
+            f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;\n"
+            f"CREATE SCHEMA {self.schema_name} "
+            f"AUTHORIZATION {_env_var('POSTGRES_USER')};\n"
+        )
 
     def empty_table_create_command_for(self, table: Table) -> str:
         """Create a table for a set of data. Drop it if it exists"""
 
-        columns_name_and_type = ",".join([f"{c.name} {c.sql_type}" for c in table.columns])
+        columns_name_and_type = ",".join(
+            [f"{c.name} {c.sql_type}" for c in table.columns]
+        )
 
-        return (f"CREATE TABLE {self.schema_name}.{table.name} "
-                f"({table.primary_key_name} serial PRIMARY KEY, "
-                f"{columns_name_and_type});\n")
+        return (
+            f"CREATE TABLE {self.schema_name}.{table.name} "
+            f"({table.primary_key_name} serial PRIMARY KEY, "
+            f"{columns_name_and_type});\n"
+        )
 
     def add_data_command_for(self, table: Table) -> str:
         """Addd a table to the schema"""
@@ -272,8 +280,10 @@ class FakeStarDatabase:
 
         for i in range(table.n_rows):
 
-            values = ",".join(column.format_specifier % table.data[column][i]
-                              for column in table.columns)
+            values = ",".join(
+                column.format_specifier % table.data[column][i]
+                for column in table.columns
+            )
 
             string += (
                 f"INSERT INTO {self.schema_name}.{table.name} "
@@ -324,10 +334,7 @@ def main():
 
     for table in tables:
         table.add_fake_data(fake)
-        print(
-            db.empty_table_create_command_for(table),
-            db.add_data_command_for(table)
-        )
+        print(db.empty_table_create_command_for(table), db.add_data_command_for(table))
 
     logger.info("Successfully printed fake tables")
     return None
