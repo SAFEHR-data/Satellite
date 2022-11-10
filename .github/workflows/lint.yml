@@ -30,7 +30,7 @@ concurrency:
 jobs:
   lint:
     name: Lint
-    runs-on: uclhdif-runner
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -54,9 +54,3 @@ jobs:
           VALIDATE_YAML: true
           VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_DOCKERFILE_HADOLINT: true
-
-      # Superlinter creates directories owned by root which must be cleaned up
-      # TODO: remove when using gh-hosted runners
-      - name: Clean up directory
-        if: ${{ !cancelled() && (success() || failure()) }}
-        run: sudo find ${{ github.workspace }} -user root -delete
