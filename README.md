@@ -1,4 +1,4 @@
-# fake-star
+# Satellite
 
 This repository contains a `Dockerfile` suitable to build a postgres instance
 that mimics the table structure of
@@ -7,8 +7,8 @@ with fake data.
 
 Run as a single container:
 ```bash
-docker build . -t fake-star --build-arg GITHUB_PASSWORD=<token> --build-arg GITHUB_USER=<username>
-docker run -p 5432:5432 fake-star
+docker build . -t satellite
+docker run -p 5432:5432 satellite
 ```
 
 Use in a Docker compose file:
@@ -17,17 +17,15 @@ version: "3.9"
 
 services:
   star:
-    image: fake-star
-    container_name: test_fake_star
+    image: satellite
+    container_name: test_fake_star_db
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        GITHUB_USER: <your-github-username>
-        GITHUB_PASSWORD: <a-github-PAT>
-        N_TABLE_ROWS: 5  # Number of rows present in each table
+        POSTGRES_USER: postgres      # Username to access the database
+        POSTGRES_PASSWORD: postgres  # Password to access the database
+        N_TABLE_ROWS: 5              # Number of rows present in each table
     ports:
       - "5432:5432"
     healthcheck:
