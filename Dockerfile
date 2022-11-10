@@ -13,21 +13,17 @@
 # limitations under the License.
 FROM postgres:15.0-bullseye
 
-# Required arguments
+# User definable arguments
 ARG POSTGRES_USER=postgres
 ARG POSTGRES_PASSWORD=postgres
 ARG N_TABLE_ROWS=2
-ARG DEBIAN_FRONTEND=noninteractive
 ARG INFORMDB_BRANCH_NAME=develop
 ARG STAR_SCHEMA_NAME=star
 ARG FAKER_SEED=0
 ARG TIMEZONE="Europe/London"
 ARG TAG="0.0.1"
 
-# Github credentials to be able to clone the fake-star repo
-# TODO: remove when this repo is public
-ARG GITHUB_USER
-ARG GITHUB_PASSWORD
+ARG DEBIAN_FRONTEND=noninteractive
 
 # OS setup
 RUN apt-get update && \
@@ -39,17 +35,16 @@ RUN apt-get update && \
 RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
 # Create .sql file that will be used to initallly populate the database
-RUN git clone --depth 1 --branch ${TAG} \
-     https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/UCLH-DIF/fake-star.git && \
+RUN git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git && \
     pip install --no-cache-dir --upgrade pip==22.3.1 && \
-    pip install --no-cache-dir -r fake-star/requirements.txt
+    pip install --no-cache-dir -r Satellite/requirements.txt
 
-WORKDIR /fake-star/
+WORKDIR /Satellite/
 RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql
 
 # Clean up repo and Python
 # hadolint ignore=DL3059
-RUN rm -rf /fake-star && \
+RUN rm -rf /Satellite && \
     apt-get --yes --purge autoremove python3.9 python3-pip
 
 # Export the variables to the runtime of the container
