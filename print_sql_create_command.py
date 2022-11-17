@@ -149,6 +149,7 @@ class Table:
     def __init__(self, name: str):
         self.name = str(name)
         self.data = dict()  # Keyed with column names with a list of rows as a value
+        self._extends_temporal_core = False
 
     @classmethod
     def from_java_file(cls, filepath: Path) -> "Table":
@@ -174,7 +175,8 @@ class Table:
             if "}" in line:
                 depth -= 1
 
-            if f"public class {filepath.stem}" in line:
+            if f"class {filepath.stem}" in line:
+                self._extends_temporal_core = "extends TemporalCore" in line
                 passed_class_definition = True
                 continue
 
@@ -228,6 +230,11 @@ class Table:
 
         return None
 
+    def add_columns_from(self, table: "Table") -> None:
+        """Add a set of columns to this table from another table"""
+        for column in table.columns:
+            self.data[column] = []
+
     @property
     def columns(self) -> List[Column]:
         return [
@@ -239,6 +246,11 @@ class Table:
     @property
     def primary_key_name(self) -> str:
         return f"{self.name}_id"
+
+    @property
+    def extends_temporal_core(self) -> bool:
+        """Does this table extend i.e. have columns from a temporal core superclass?"""
+        return self._extends_temporal_core
 
 
 class FakeStarDatabase:
@@ -278,19 +290,21 @@ class FakeStarDatabase:
         string = ""
         col_names = ",".join(col.name for col in table.columns)
 
+        string += (
+            f"INSERT INTO {self.schema_name}.{table.name} "
+            f"({col_names}) VALUES \n"
+        )
+
         for i in range(table.n_rows):
 
             values = ",".join(
                 column.format_specifier % table.data[column][i]
                 for column in table.columns
             )
+            string += f"({values}),\n"
 
-            string += (
-                f"INSERT INTO {self.schema_name}.{table.name} "
-                f"({col_names}) VALUES ({values});\n"
-            )
-
-        return string
+        string = string.rstrip(',\n')  # can't use trailing columns in sql
+        return f"{string};"
 
 
 class StarTables(list):
@@ -307,12 +321,22 @@ class StarTables(list):
             _ = git.Repo.clone_from(url=repo_url, to_path=repo_path, branch=branch_name)
 
         self = cls()
+        temporal_core_superclass = Table(name="temporal_core")
 
         for path in Path("star_repo/inform-db/src/main").rglob("**/*.java"):
+
+            if path.name.endswith("TemporalCore.java"):
+                temporal_core_superclass = Table.from_java_file(path)
+                continue
+
             if any(path.name.endswith(suffix) for suffix in excluded_suffixes):
                 continue
 
             self.append(Table.from_java_file(path))
+
+        for table in self:
+            if table.extends_temporal_core:
+                table.add_columns_from(temporal_core_superclass)
 
         logger.info(f"Created {len(self)} tables from repo")
         return self
