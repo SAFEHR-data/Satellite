@@ -303,8 +303,7 @@ class FakeStarDatabase:
             )
             string += f"({values}),\n"
 
-        string = string.rstrip(',\n')  # can't use trailing columns in sql
-        return f"{string};"
+        return string.rstrip(',\n') + ";"
 
 
 class StarTables(list):
