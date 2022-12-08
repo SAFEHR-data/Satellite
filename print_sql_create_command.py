@@ -156,6 +156,7 @@ class Column:
                    else f" REFERENCES {self.table_reference.name}")
         return f"{self.name} {self.sql_type}{ref_str}"
 
+
 class Table:
     def __init__(self, name: str):
         self.name = str(name)
@@ -363,6 +364,10 @@ class StarTables(list):
         return self
 
 
+def number_of_foreign_keys(table: Table) -> int:
+    return sum(c.is_foreign_key for c in table.columns)
+
+
 def main():
 
     db = FakeStarDatabase()
@@ -377,7 +382,7 @@ def main():
 
     print(db.schema_create_command)
 
-    for table in tables:
+    for table in sorted(tables, key=number_of_foreign_keys):
         table.add_fake_data(fake)
         print(db.empty_table_create_command_for(table), db.add_data_command_for(table))
 
