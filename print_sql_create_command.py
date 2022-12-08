@@ -22,7 +22,7 @@ from faker.providers import BaseProvider
 from faker.providers.date_time import Provider as FakerDTProvider
 from datetime import datetime, date
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 
 
@@ -107,6 +107,7 @@ class StarDatetimeProvider(FakerDTProvider):
 class Column:
     name: str
     java_type: str
+    table_reference: Optional["Table"] = None
 
     @property
     def sql_type(self) -> str:
@@ -134,7 +135,7 @@ class Column:
         return hash(self.name)
 
     @property
-    def format_specifier(self):
+    def format_specifier(self) -> str:
         if self.sql_type == "text":
             return "'%s'"
         elif self.sql_type == "timestamptz" or self.sql_type == "date":
@@ -144,6 +145,16 @@ class Column:
 
         return "%s"
 
+    @property
+    def is_foreign_key(self) -> bool:
+        return self.table_reference is not None
+
+    @property
+    def sql_definition(self) -> str:
+        """Return a string containing the name, type and references to other tables"""
+        ref_str = ("" if self.table_reference is None
+                   else f" REFERENCES {self.table_reference.name}")
+        return f"{self.name} {self.sql_type}{ref_str}"
 
 class Table:
     def __init__(self, name: str):
@@ -235,6 +246,19 @@ class Table:
         for column in table.columns:
             self.data[column] = []
 
+    def assign_foreign_keys(self, tables: "StarTables") -> None:
+        """
+        Given the columns present in this table determine those that are
+        foreign keys
+        """
+        for column in self.columns:
+            try:
+                column.table_reference = next(
+                    table for table in tables if f"{table.name}_id" == column.name
+                )
+            except StopIteration:
+                continue  # Not a foreign key referencing another tables PK
+
     @property
     def columns(self) -> List[Column]:
         return [
@@ -273,10 +297,7 @@ class FakeStarDatabase:
     def empty_table_create_command_for(self, table: Table) -> str:
         """Create a table for a set of data. Drop it if it exists"""
 
-        columns_name_and_type = ",".join(
-            [f"{c.name} {c.sql_type}" for c in table.columns]
-        )
-
+        columns_name_and_type = ",".join([c.sql_definition for c in table.columns])
         return (
             f"CREATE TABLE {self.schema_name}.{table.name} "
             f"({table.primary_key_name} serial PRIMARY KEY, "
@@ -334,6 +355,7 @@ class StarTables(list):
             self.append(Table.from_java_file(path))
 
         for table in self:
+            table.assign_foreign_keys(self)
             if table.extends_temporal_core:
                 table.add_columns_from(temporal_core_superclass)
 
