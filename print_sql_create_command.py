@@ -152,8 +152,9 @@ class Column:
     @property
     def sql_definition(self) -> str:
         """Return a string containing the name, type and references to other tables"""
+        schema_name = _env_var("STAR_SCHEMA_NAME")
         ref_str = ("" if self.table_reference is None
-                   else f" REFERENCES {self.table_reference.name}")
+                   else f" REFERENCES {schema_name}.{self.table_reference.name}")
         return f"{self.name} {self.sql_type}{ref_str}"
 
 
