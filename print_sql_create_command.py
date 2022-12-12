@@ -154,8 +154,11 @@ class Column:
     def sql_definition(self) -> str:
         """Return a string containing the name, type and references to other tables"""
         schema_name = _env_var("STAR_SCHEMA_NAME")
-        ref_str = ("" if self.table_reference is None
-                   else f" REFERENCES {schema_name}.{self.table_reference.name}")
+        ref_str = (
+            ""
+            if self.table_reference is None
+            else f" REFERENCES {schema_name}.{self.table_reference.name}"
+        )
         return f"{self.name} {self.sql_type}{ref_str}"
 
 
@@ -235,8 +238,10 @@ class Table:
                 faker_method = getattr(fake, column.name)
 
             elif column.is_foreign_key:
+
                 def _foreign_key_id():
                     return fake.pyint(1, column.table_reference.n_rows)
+
                 faker_method = _foreign_key_id
 
             elif hasattr(fake, column.sql_type):  # match for the type of column
@@ -321,8 +326,7 @@ class FakeStarDatabase:
         col_names = ",".join(col.name for col in table.columns)
 
         string += (
-            f" INSERT INTO {self.schema_name}.{table.name} "
-            f"({col_names}) VALUES \n"
+            f" INSERT INTO {self.schema_name}.{table.name} " f"({col_names}) VALUES \n"
         )
 
         for i in range(table.n_rows):
@@ -333,7 +337,7 @@ class FakeStarDatabase:
             )
             string += f"  ({values}),\n"
 
-        return string.rstrip(',\n') + ";"
+        return string.rstrip(",\n") + ";"
 
 
 class StarTables(list):
