@@ -17,12 +17,13 @@ import git
 import logging
 import coloredlogs
 import faker
+import networkx as nx
 
 from faker.providers import BaseProvider
 from faker.providers.date_time import Provider as FakerDTProvider
 from datetime import datetime, date
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional, Generator
 from pathlib import Path
 
 
@@ -107,6 +108,7 @@ class StarDatetimeProvider(FakerDTProvider):
 class Column:
     name: str
     java_type: str
+    table_reference: Optional["Table"] = None
 
     @property
     def sql_type(self) -> str:
@@ -134,7 +136,7 @@ class Column:
         return hash(self.name)
 
     @property
-    def format_specifier(self):
+    def format_specifier(self) -> str:
         if self.sql_type == "text":
             return "'%s'"
         elif self.sql_type == "timestamptz" or self.sql_type == "date":
@@ -143,6 +145,21 @@ class Column:
             return "E'%s'"
 
         return "%s"
+
+    @property
+    def is_foreign_key(self) -> bool:
+        return self.table_reference is not None
+
+    @property
+    def sql_definition(self) -> str:
+        """Return a string containing the name, type and references to other tables"""
+        schema_name = _env_var("STAR_SCHEMA_NAME")
+        ref_str = (
+            ""
+            if self.table_reference is None
+            else f" REFERENCES {schema_name}.{self.table_reference.name}"
+        )
+        return f"{self.name} {self.sql_type}{ref_str}"
 
 
 class Table:
@@ -220,8 +237,16 @@ class Table:
             if hasattr(fake, column.name):  # match for specific column e.g. mrn
                 faker_method = getattr(fake, column.name)
 
+            elif column.is_foreign_key:
+
+                def _foreign_key_id():
+                    return fake.pyint(1, column.table_reference.n_rows)
+
+                faker_method = _foreign_key_id
+
             elif hasattr(fake, column.sql_type):  # match for the type of column
                 faker_method = getattr(fake, column.sql_type)
+
             else:
                 faker_method = fake.default  # Random string
 
@@ -234,6 +259,19 @@ class Table:
         """Add a set of columns to this table from another table"""
         for column in table.columns:
             self.data[column] = []
+
+    def assign_foreign_keys(self, tables: "StarTables") -> None:
+        """
+        Given the columns present in this table determine those that are
+        foreign keys
+        """
+        for column in self.columns:
+            try:
+                column.table_reference = next(
+                    table for table in tables if f"{table.name}_id" == column.name
+                )
+            except StopIteration:
+                continue  # Not a foreign key referencing another tables PK
 
     @property
     def columns(self) -> List[Column]:
@@ -273,10 +311,7 @@ class FakeStarDatabase:
     def empty_table_create_command_for(self, table: Table) -> str:
         """Create a table for a set of data. Drop it if it exists"""
 
-        columns_name_and_type = ",".join(
-            [f"{c.name} {c.sql_type}" for c in table.columns]
-        )
-
+        columns_name_and_type = ", ".join([c.sql_definition for c in table.columns])
         return (
             f"CREATE TABLE {self.schema_name}.{table.name} "
             f"({table.primary_key_name} serial PRIMARY KEY, "
@@ -291,8 +326,7 @@ class FakeStarDatabase:
         col_names = ",".join(col.name for col in table.columns)
 
         string += (
-            f"INSERT INTO {self.schema_name}.{table.name} "
-            f"({col_names}) VALUES \n"
+            f" INSERT INTO {self.schema_name}.{table.name} " f"({col_names}) VALUES \n"
         )
 
         for i in range(table.n_rows):
@@ -301,9 +335,9 @@ class FakeStarDatabase:
                 column.format_specifier % table.data[column][i]
                 for column in table.columns
             )
-            string += f"({values}),\n"
+            string += f"  ({values}),\n"
 
-        return string.rstrip(',\n') + ";"
+        return string.rstrip(",\n") + ";"
 
 
 class StarTables(list):
@@ -334,11 +368,24 @@ class StarTables(list):
             self.append(Table.from_java_file(path))
 
         for table in self:
+            table.assign_foreign_keys(self)
             if table.extends_temporal_core:
                 table.add_columns_from(temporal_core_superclass)
 
         logger.info(f"Created {len(self)} tables from repo")
         return self
+
+    def topologically_sorted(self) -> Generator:
+        """Tables in topologically sorted order given the foreign key references"""
+
+        dag = nx.DiGraph()
+        dag.add_nodes_from(range(len(self)))
+        for i, table in enumerate(self):
+            for column in [col for col in table.columns if col.is_foreign_key]:
+                dag.add_edge(i, self.index(column.table_reference))
+
+        for node in reversed(list(nx.topological_sort(dag))):
+            yield self[int(node)]
 
 
 def main():
@@ -355,7 +402,7 @@ def main():
 
     print(db.schema_create_command)
 
-    for table in tables:
+    for table in tables.topologically_sorted():
         table.add_fake_data(fake)
         print(db.empty_table_create_command_for(table), db.add_data_command_for(table))
 
