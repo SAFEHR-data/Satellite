@@ -315,7 +315,7 @@ class FakeStarDatabase:
         return (
             f"CREATE TABLE {self.schema_name}.{table.name} "
             f"({table.primary_key_name} serial PRIMARY KEY, "
-            f"{columns_name_and_type});\n"
+            f"{columns_name_and_type});"
         )
 
     def add_data_command_for(self, table: Table) -> str:
@@ -326,7 +326,7 @@ class FakeStarDatabase:
         col_names = ",".join(col.name for col in table.columns)
 
         string += (
-            f" INSERT INTO {self.schema_name}.{table.name} " f"({col_names}) VALUES \n"
+            f"  INSERT INTO {self.schema_name}.{table.name} ({col_names}) VALUES \n"
         )
 
         for i in range(table.n_rows):
@@ -403,8 +403,11 @@ def main():
     print(db.schema_create_command)
 
     for table in tables.topologically_sorted():
-        table.add_fake_data(fake)
-        print(db.empty_table_create_command_for(table), db.add_data_command_for(table))
+        print(db.empty_table_create_command_for(table))
+
+        if table.n_rows > 0:
+            table.add_fake_data(fake)
+            print(db.add_data_command_for(table))
 
     logger.info("Successfully printed fake tables")
     return None
