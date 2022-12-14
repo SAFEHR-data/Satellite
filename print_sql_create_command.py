@@ -320,6 +320,9 @@ class FakeStarDatabase:
 
     def add_data_command_for(self, table: Table) -> str:
         """Addd a table to the schema"""
+        if table.n_rows == 0:
+            return ""
+
         logger.info(f"Adding table data: {table.name}")
 
         string = ""
