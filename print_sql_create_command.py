@@ -73,7 +73,7 @@ class StarBaseProvider(BaseProvider):
 
     @staticmethod
     def default() -> str:
-        return Faker().bothify("??????")
+        return ""
 
     def mrn(self) -> str:
         return self.bothify("#########")
@@ -90,8 +90,8 @@ class StarBaseProvider(BaseProvider):
     def real(self) -> float:
         return float(self.random_int(0, 1000)) / 100.0
 
-    def bytes(self) -> bytes:
-        return self.default().encode()
+    def bytea(self) -> str:
+        return self.text()  # Encoding happens in the format specifier
 
 
 class StarDatetimeProvider(FakerDTProvider):
@@ -248,8 +248,10 @@ class Table:
                 faker_method = getattr(fake, column.sql_type)
 
             else:
-                faker_method = fake.default  # Random string
+                logger.error(f"Have no provider for {column.sql_type}")
+                faker_method = fake.default
 
+            logger.debug(f"   using {faker_method}")
             for _ in range(self.n_rows):
                 values.append(faker_method())
 
