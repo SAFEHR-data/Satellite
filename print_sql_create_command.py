@@ -90,8 +90,8 @@ class StarBaseProvider(BaseProvider):
     def real(self) -> float:
         return float(self.random_int(0, 1000)) / 100.0
 
-    def bytes(self) -> bytes:
-        return self.default().encode()
+    def bytea(self) -> str:
+        return self.text()  # Encoding happens in the format specifier
 
 
 class StarDatetimeProvider(FakerDTProvider):
