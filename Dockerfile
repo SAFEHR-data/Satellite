@@ -37,15 +37,12 @@ RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
 COPY . /Satellite
 
-RUN if [[ -z "TAG" ]] ; then \
+RUN if [[ -z "$TAG" ]] ; then \
         rm -rf /Satellite && \
-        git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git && \
-        pip install --no-cache-dir --upgrade pip==22.3.1 && \
-        pip install --no-cache-dir -r Satellite/requirements.txt ; \
-    else  \
-        pip install --upgrade pip==22.3.1 && \
-        pip install -r Satellite/requirements.txt ; \
-    fi
+        git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
+    fi && \
+    pip install --upgrade pip==22.3.1 && \
+    pip install -r Satellite/requirements.txt
 
 WORKDIR /Satellite/
 RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql
