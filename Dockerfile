@@ -17,6 +17,7 @@ FROM postgres:15.0-bullseye
 ARG POSTGRES_USER=postgres
 ARG POSTGRES_PASSWORD=postgres
 ARG N_TABLE_ROWS=2
+ARG UPDATE_RATE=0.1
 ARG INFORMDB_BRANCH_NAME=develop
 ARG STAR_SCHEMA_NAME=star
 ARG FAKER_SEED=0
@@ -34,22 +35,30 @@ RUN apt-get update && \
 
 RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
-# Create .sql file that will be used to initallly populate the database
-RUN git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git && \
-    pip install --no-cache-dir --upgrade pip==22.3.1 && \
-    pip install --no-cache-dir -r Satellite/requirements.txt
+COPY . /Satellite
+
+RUN if [[ -z "TAG" ]] ; then \
+        rm -rf /Satellite && \
+        git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git && \
+        pip install --no-cache-dir --upgrade pip==22.3.1 && \
+        pip install --no-cache-dir -r Satellite/requirements.txt ; \
+    else  \
+        pip install --upgrade pip==22.3.1 && \
+        pip install -r Satellite/requirements.txt ; \
+    fi
 
 WORKDIR /Satellite/
 RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql
 
-# Clean up repo and Python
-# hadolint ignore=DL3059
-RUN rm -rf /Satellite && \
-    apt-get --yes --purge autoremove python3.9 python3-pip
-
 # Export the variables to the runtime of the container
 ENV POSTGRES_USER ${POSTGRES_USER}
 ENV POSTGRES_PASSWORD ${POSTGRES_PASSWORD}
-ENV TIMEZONE ${TZ}
+ENV UPDATE_RATE ${UPDATE_RATE}
+ENV INFORMDB_BRANCH_NAME ${INFORMDB_BRANCH_NAME}
+ENV STAR_SCHEMA_NAME ${STAR_SCHEMA_NAME}
+ENV FAKER_SEED ${FAKER_SEED}
+ENV TIMEZONE ${TIMEZONE}
 ENV LANG=en_GB.UTF-8
 ENV LC_ALL=en_GB.UTF-8
+
+CMD ./post_create_comands.sh
