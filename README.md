@@ -26,9 +26,9 @@ services:
         POSTGRES_USER: postgres      # Username to access the database
         POSTGRES_PASSWORD: postgres  # Password to access the database
         N_TABLE_ROWS: 5              # Number of rows present in each table initially
-        ADD_RATE: 1                  # Number of rows to   add   per second
-        UPDATE_RATE: 1               #                   update
-        DELETE_RATE: 0               #                   delete 
+        INSERT_RATE: 1               # Number of rows to insert/add per second
+        UPDATE_RATE: 1               #                    update
+        DELETE_RATE: 0               #                    delete 
     ports:
       - "5432:5432"
     healthcheck:

@@ -17,12 +17,14 @@ FROM postgres:15.0-bullseye
 ARG POSTGRES_USER=postgres
 ARG POSTGRES_PASSWORD=postgres
 ARG N_TABLE_ROWS=2
-ARG UPDATE_RATE=0.1
+ARG INSERT_RATE=1
+ARG UPDATE_RATE=1
+ARG DELETE_RATE=0
 ARG INFORMDB_BRANCH_NAME=develop
 ARG STAR_SCHEMA_NAME=star
 ARG FAKER_SEED=0
 ARG TIMEZONE="Europe/London"
-ARG TAG="0.0.5"
+ARG TAG="0.0.6"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -35,6 +37,8 @@ RUN apt-get update && \
 
 RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
+
+# Download the tagged version of the Satellite repo if it is set otherwise use the current dir
 COPY . /Satellite
 
 RUN if [[ -z "$TAG" ]] ; then \
@@ -42,10 +46,10 @@ RUN if [[ -z "$TAG" ]] ; then \
         git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
     fi && \
     pip install --upgrade pip==22.3.1 && \
-    pip install -r Satellite/requirements.txt
+    pip install --no-cache-dir .
 
 WORKDIR /Satellite/
-RUN python3.9 print_sql_create_command.py > /docker-entrypoint-initdb.d/create.sql
+RUN satellite print-create-command > /docker-entrypoint-initdb.d/create.sql
 
 # Export the variables to the runtime of the container
 ENV POSTGRES_USER ${POSTGRES_USER}
@@ -55,6 +59,9 @@ ENV INFORMDB_BRANCH_NAME ${INFORMDB_BRANCH_NAME}
 ENV STAR_SCHEMA_NAME ${STAR_SCHEMA_NAME}
 ENV FAKER_SEED ${FAKER_SEED}
 ENV TIMEZONE ${TIMEZONE}
+ENV INSERT_RATE ${INSERT_RATE}
+ENV UPDATE_RATE ${UPDATE_RATE}
+ENV DELETE_RATE ${DELETE_RATE}
 ENV LANG=en_GB.UTF-8
 ENV LC_ALL=en_GB.UTF-8
 
