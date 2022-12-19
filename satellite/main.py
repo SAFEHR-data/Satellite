@@ -33,8 +33,7 @@ def print_create_command() -> None:
         branch_name=EnvVar("INFORMDB_BRANCH_NAME").or_default(),
     )
 
-    fake = Faker()
-    Faker.seed(EnvVar("FAKER_SEED").unwrap_as(int))
+    fake = Faker.with_seed(EnvVar("FAKER_SEED").unwrap_as(int))
 
     print(db.schema_create_command)
 

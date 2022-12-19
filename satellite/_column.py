@@ -51,10 +51,8 @@ class Column:
     def is_foreign_key(self) -> bool:
         return self.table_reference is not None
 
-    @property
-    def sql_definition(self) -> str:
+    def definition_in_schema(self, schema_name: str) -> str:
         """Return a string containing the name, type and references to other tables"""
-        schema_name = EnvVar("STAR_SCHEMA_NAME").or_default()
         ref_str = (
             ""
             if self.table_reference is None

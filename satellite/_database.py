@@ -38,7 +38,9 @@ class Database:
     def empty_table_create_command_for(self, table: Table) -> str:
         """Create a table for a set of data. Drop it if it exists"""
 
-        columns_name_and_type = ", ".join([c.sql_definition for c in table.columns])
+        columns_name_and_type = ", ".join(
+            [col.definition_in_schema(self._schema_name) for col in table.columns]
+        )
         return (
             f"CREATE TABLE {self.schema_name}.{table.name} "
             f"({table.primary_key_name} serial PRIMARY KEY, "
