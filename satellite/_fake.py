@@ -16,8 +16,24 @@ import faker
 from typing import Any, Optional
 from datetime import datetime, date, timedelta
 from faker.providers import BaseProvider
+from faker.providers.person.en import Provider as PersonProvider
+from faker.providers.address.en import Provider as AddressProvider
 from faker.providers.date_time import Provider as FakerDTProvider
 from satellite._settings import EnvVar
+
+_ETHNICITIES = [
+            "Black African",
+            "Black Other",
+            "Chinese",
+            "Filipino",
+            "Indian",
+            "Irish Traveller",
+            "Mixed ethnic group",
+            "Roma",
+            "White",
+            "Any other ethnic group",
+            "Unknown",
+]
 
 
 class _StarBaseProvider(BaseProvider):
@@ -47,8 +63,8 @@ class _StarBaseProvider(BaseProvider):
     def real(self) -> float:
         return float(self.random_int(0, 1000)) / 100.0
 
-    def bytea(self) -> str:
-        return self.text()  # Encoding happens in the format specifier
+    def bytea(self) -> bytes:
+        return self.text().encode()
 
     def _value_or_none(self, value: Any, p: float = 0.5) -> Optional[Any]:
         """Return the value or None dependent on the probability"""
@@ -61,6 +77,27 @@ class _StarBaseProvider(BaseProvider):
     def nhs_number(self) -> Optional[str]:
         """NHS number is a 10 digit numeric value"""
         return self._value_or_none(self.bothify(10 * "#"), p=0.1)
+
+    def ethnicity(self) -> str:
+        return self.random_element(_ETHNICITIES)
+
+    def sex(self) -> str:
+        return self.random_element(["UNKNOWN", "M", "F"])
+
+
+class _StarPersonProvider(PersonProvider, _StarBaseProvider):
+
+    def firstname(self) -> str:
+        return self.first_name().replace("'", " ")
+
+    def middlename(self) -> str:
+        return self._value_or_none(self.firstname(), p=0.5)
+
+    def lastname(self) -> str:
+        return self.last_name().replace("'", r" ")
+
+    def name(self) -> str:
+        return self.text()
 
 
 class _StarDatetimeProvider(FakerDTProvider):
@@ -83,13 +120,27 @@ class _StarDatetimeProvider(FakerDTProvider):
         )
 
 
+class _StarAddressProvider(AddressProvider):
+
+    def home_postcode(self) -> str:
+        return self.postcode()
+
+
+_providers = (
+    _StarBaseProvider,
+    _StarDatetimeProvider,
+    _StarPersonProvider,
+    _StarAddressProvider,
+)
+
+
 class _Faker(faker.Faker):
     """Custom Faker"""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-        for provider in (_StarBaseProvider, _StarDatetimeProvider):
+        for provider in _providers:
             self.add_provider(provider)
 
     @classmethod

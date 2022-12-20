@@ -92,6 +92,10 @@ class DatabaseSchema:
             f"{columns_name_and_type});"
         )
 
+    @staticmethod
+    def _decode_if_bytes(value: Any) -> Any:
+        return value.decode() if isinstance(value, bytes) else value
+
     def add_data_command_for(self, table: Table) -> str:
         """Addd a table to the schema"""
         if table.n_rows == 0:
@@ -107,7 +111,7 @@ class DatabaseSchema:
 
         for i in range(table.n_rows):
             values = ",".join(
-                column.format_specifier % table.data[column][i]
+                column.format_specifier % self._decode_if_bytes(table.data[column][i])
                 if table.data[column][i] is not None else 'null'
                 for column in table.non_pk_columns
             )
