@@ -35,9 +35,9 @@ class Column:
         string = f"Column({self.name}, type={self.sql_type} "
         string += f"parent_table={self.parent_table_name}"
         string += (
-            ""
+            " )"
             if self.table_reference is None
-            else f", table_reference={self.table_reference.name}"
+            else f", table_reference={self.table_reference.name})"
         )
         return string
 

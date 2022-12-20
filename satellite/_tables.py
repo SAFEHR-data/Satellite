@@ -104,7 +104,7 @@ class Table(_TableChunk):
 
         # If a line includes any of these substrings it will be skipped
         # note all Lists are e.g. one<->many relationships
-        excluded_substrings = ("@", "*", "(", "=", "List")
+        excluded_substrings = ("@", "*", "(", "List")
 
         # Strings that define if a class attribute is being defined
         delc_strings = ("private", "public", "protected")
@@ -131,9 +131,10 @@ class Table(_TableChunk):
             ):
                 continue
 
-            # e.g. line = "private Instant storedFrom;"
-            line = line.strip().rstrip(";")
-            java_type, attr_name = line.split()[-2:]
+            # e.g. line = "private Instant storedFrom;" or "private Boolean x = false;"
+            items = line.strip().rstrip(";").split()
+            idx = -2 if "=" not in line else -4
+            java_type, attr_name = items[idx], items[idx+1]
 
             # All attributes that end with Id are foreign keys, thus just ints
             if attr_name.endswith("Id"):

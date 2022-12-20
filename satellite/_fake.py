@@ -84,6 +84,20 @@ class _StarBaseProvider(BaseProvider):
     def sex(self) -> str:
         return self.random_element(["UNKNOWN", "M", "F"])
 
+    def location_string(self) -> str:
+        return f"T{self.random_int(0, 99):02d}-B{self.random_int(0, 99):02d}"
+
+    def arrival_method(self) -> Optional[str]:
+        value = self.random_element(["Ambulance", "Walk in"])
+        return self._value_or_none(value, p=0.5)
+
+    def encounter(self) -> str:
+        return self.bothify("#########")
+
+    @staticmethod
+    def comments() -> None:
+        return None
+
 
 class _StarPersonProvider(PersonProvider, _StarBaseProvider):
 
