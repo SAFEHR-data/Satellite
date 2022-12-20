@@ -7,11 +7,11 @@ _default_values = {
     "STAR_SCHEMA_NAME": "star",
     "FAKER_SEED": "0",
     "INFORMDB_BRANCH_NAME": "master",
+    "POSTGRES_HOST": "localhost",
 }
 
 
 class EnvVar:
-
     def __init__(self, name: str):
         self._name = name
         self._value = os.environ.get(name, None)
@@ -28,7 +28,7 @@ class EnvVar:
         """Raise a runtime error if the value is undefined and cast as a type"""
         return _type(self.unwrap())
 
-    def otherwise(self, default: str) -> str:
+    def or_else(self, default: Any) -> str:
         """Return the value if set otherwise use the default value"""
         return default if self._value is None else self._value
 

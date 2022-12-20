@@ -1,7 +1,7 @@
 import git
 import networkx as nx
 
-from typing import List, Generator
+from typing import List, Generator, Optional
 from pathlib import Path
 from faker import Faker
 
@@ -9,6 +9,23 @@ from satellite._utils import camel_to_snake_case
 from satellite._settings import EnvVar
 from satellite._log import logger
 from satellite._column import Column
+from satellite._fake import fake
+
+
+class Row:
+    def __init__(self, table_name: str, columns: List[Column]):
+        self.table_name = table_name
+        self.columns = columns
+        self.values = []
+
+    @classmethod
+    def with_fake_values(cls, table_name: str, columns: List[Column]) -> "Row":
+        row = cls(table_name=table_name, columns=columns)
+        for col in row.columns:
+            function = col.faker_method(fake)
+            row.values.append(function())
+
+        return row
 
 
 class Table:
@@ -18,7 +35,7 @@ class Table:
         self.name = str(name)
         self.data = dict()  # Keyed with column names with a list of rows as a value
         self._extends_temporal_core = False
-        self._n_rows: int = EnvVar("N_TABLE_ROWS").unwrap_as(int)
+        self.n_rows = EnvVar("N_TABLE_ROWS").unwrap_as(int)
 
     @classmethod
     def from_java_file(cls, filepath: Path) -> "Table":
@@ -71,11 +88,7 @@ class Table:
 
         return self
 
-    @property
-    def n_rows(self) -> int:
-        return self._n_rows
-
-    def add_fake_data(self, fake: Faker) -> None:
+    def add_fake_data(self) -> None:
         logger.info(f"Adding fake data to {self.name}")
 
         for column, values in self.data.items():
@@ -84,29 +97,15 @@ class Table:
                 continue  # This is just a serial index so no need to create fake values
 
             logger.info(f"Creating random data for {column}")
+            function = column.faker_method(fake)
 
-            if hasattr(fake, column.name):  # match for specific column e.g. mrn
-                faker_method = getattr(fake, column.name)
-
-            elif column.is_foreign_key:
-
-                def _foreign_key_id():
-                    return fake.pyint(1, column.table_reference.n_rows)
-
-                faker_method = _foreign_key_id
-
-            elif hasattr(fake, column.sql_type):  # match for the type of column
-                faker_method = getattr(fake, column.sql_type)
-
-            else:
-                logger.error(f"Have no provider for {column.sql_type}")
-                faker_method = fake.default
-
-            logger.debug(f"   using {faker_method}")
             for _ in range(self.n_rows):
-                values.append(faker_method())
+                values.append(function())
 
         return None
+
+    def fake_row(self) -> Row:
+        return Row.with_fake_values(table_name=self.name, columns=self.columns)
 
     def add_columns_from(self, table: "Table") -> None:
         """Add a set of columns to this table from another table"""
@@ -148,7 +147,7 @@ class Tables(list):
     """List of tables present in a star schema"""
 
     @classmethod
-    def from_repo(cls, repo_url: str, branch_name: str) -> "StarTables":
+    def from_repo(cls, repo_url: str, branch_name: str) -> "Tables":
         """Create a list of tables by traversing files from a cloned git repo"""
         excluded_suffixes = ["Core.java", "info.java", "TemporalFrom.java"]
         repo_path = Path("star_repo")
@@ -190,3 +189,9 @@ class Tables(list):
 
         for node in reversed(list(nx.topological_sort(dag))):
             yield self[int(node)]
+
+    def set_num_rows_from(self, schema: "DatabaseSchema") -> None:
+        """Set the number of rows present in each table from a schema"""
+
+
+

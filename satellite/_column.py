@@ -1,7 +1,6 @@
-from typing import Optional
+from typing import Optional, Callable
 from dataclasses import dataclass
 
-from satellite._settings import EnvVar
 from satellite._log import logger
 
 
@@ -59,3 +58,23 @@ class Column:
             else f" REFERENCES {schema_name}.{self.table_reference.name}"
         )
         return f"{self.name} {self.sql_type}{ref_str}"
+
+    def faker_method(self, fake: "Faker") -> Callable:
+        """Faker method to generate synthetic/fake values for this column"""
+
+        if hasattr(fake, self.name):  # match for specific column e.g. mrn
+            return getattr(fake, self.name)
+
+        elif self.is_foreign_key:
+
+            def _foreign_key_id():
+                return fake.pyint(1, self.table_reference.n_rows)
+
+            return _foreign_key_id
+
+        elif hasattr(fake, self.sql_type):  # match for the type of column
+            return getattr(fake, self.sql_type)
+
+        else:
+            logger.error(f"Have no provider for {self.sql_type}")
+            return fake.default

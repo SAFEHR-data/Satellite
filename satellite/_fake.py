@@ -4,6 +4,7 @@ from typing import Any
 from datetime import datetime, date
 from faker.providers import BaseProvider
 from faker.providers.date_time import Provider as FakerDTProvider
+from satellite._settings import EnvVar
 
 
 class _StarBaseProvider(BaseProvider):
@@ -47,7 +48,7 @@ class _StarDatetimeProvider(FakerDTProvider):
         )
 
 
-class Faker(faker.Faker):
+class _Faker(faker.Faker):
     """Custom Faker"""
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -62,3 +63,6 @@ class Faker(faker.Faker):
         _fake = cls()
         cls.seed(seed)  # Note: cannot set on an instance
         return _fake
+
+
+fake = _Faker.with_seed(EnvVar("FAKER_SEED").unwrap_as(int))

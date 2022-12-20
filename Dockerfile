@@ -33,10 +33,8 @@ RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
     procps ca-certificates locales python3.9-dev python3-pip git && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
-
+    rm -rf /var/lib/apt/lists/* && \
+    sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
 # Download the tagged version of the Satellite repo if it is set otherwise use the current dir
 COPY . /Satellite
