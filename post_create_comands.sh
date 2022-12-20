@@ -15,10 +15,9 @@
 
 /usr/local/bin/docker-entrypoint.sh postgres &
 
-while pg_isready -U "${POSTGRES_USER:?}" ; ret=$? ; [ $ret -ne 0 ];do
-    sleep 1
-  done
+while pg_isready -U "${POSTGRES_USER:?}" ; ret=$? ; [ $ret -ne 0 ]; do
+  sleep 1 # second
+done
 
 echo "database is up"
-tail -f /dev/null
-# python3 insert_every_n_seconds.py "${UPDATE_RATE:?}"
+satellite continuously-insert

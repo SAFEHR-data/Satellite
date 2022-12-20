@@ -17,8 +17,8 @@ FROM postgres:15.0-bullseye
 ARG POSTGRES_USER=postgres
 ARG POSTGRES_PASSWORD=postgres
 ARG N_TABLE_ROWS=2
-ARG INSERT_RATE=1
-ARG UPDATE_RATE=1
+ARG INSERT_RATE=0.1
+ARG UPDATE_RATE=0
 ARG DELETE_RATE=0
 ARG INFORMDB_BRANCH_NAME=develop
 ARG STAR_SCHEMA_NAME=star
@@ -39,14 +39,14 @@ RUN apt-get update && \
 # Download the tagged version of the Satellite repo if it is set otherwise use the current dir
 COPY . /Satellite
 
-RUN if [[ -z "$TAG" ]] ; then \
-        rm -rf /Satellite && \
-        git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
+RUN if [[ ! -z "$TAG" ]] ; then \
+      echo "Cloning Satellite repo on: $TAG"\
+      rm -rf /Satellite && \
+      git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
     fi && \
     pip install --upgrade pip==22.3.1 && \
-    pip install --no-cache-dir .
+    pip install --no-cache-dir /Satellite/
 
-WORKDIR /Satellite/
 RUN satellite print-create-command > /docker-entrypoint-initdb.d/create.sql
 
 # Export the variables to the runtime of the container
@@ -63,4 +63,5 @@ ENV DELETE_RATE ${DELETE_RATE}
 ENV LANG=en_GB.UTF-8
 ENV LC_ALL=en_GB.UTF-8
 
+WORKDIR /Satellite
 CMD ./post_create_comands.sh

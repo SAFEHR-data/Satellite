@@ -1,7 +1,6 @@
 import click
 
 from satellite._log import logger
-from satellite._fake import fake
 from satellite._schema import DatabaseSchema
 from satellite._tables import Tables
 from satellite._settings import EnvVar
@@ -39,7 +38,7 @@ def print_create_command() -> None:
     print(star.schema_create_command)
 
     for table in star.tables.topologically_sorted():
-        table.add_fake_data(fake)
+        table.add_fake_data()
         print(star.empty_table_create_command_for(table))
         print(star.add_data_command_for(table))
 

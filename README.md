@@ -8,7 +8,7 @@ The `Dockerfile` is suitable to build a postgres instance directly. Run as a
 single container:
 ```bash
 docker build . -t satellite
-docker run -p 5432:5432 satellite
+docker run -it -p 5432:5432 satellite
 ```
 
 Use in a Docker compose file:

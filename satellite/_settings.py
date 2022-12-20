@@ -8,6 +8,7 @@ _default_values = {
     "FAKER_SEED": "0",
     "INFORMDB_BRANCH_NAME": "master",
     "POSTGRES_HOST": "localhost",
+    "N_TABLE_ROWS": "0"
 }
 
 

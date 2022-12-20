@@ -35,7 +35,7 @@ class Table:
         self.name = str(name)
         self.data = dict()  # Keyed with column names with a list of rows as a value
         self._extends_temporal_core = False
-        self.n_rows = EnvVar("N_TABLE_ROWS").unwrap_as(int)
+        self.n_rows = int(EnvVar("N_TABLE_ROWS").or_default())
 
     @classmethod
     def from_java_file(cls, filepath: Path) -> "Table":
