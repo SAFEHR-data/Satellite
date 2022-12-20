@@ -13,8 +13,8 @@
 # limitations under the License.
 import faker
 
-from typing import Any
-from datetime import datetime, date
+from typing import Any, Optional
+from datetime import datetime, date, timedelta
 from faker.providers import BaseProvider
 from faker.providers.date_time import Provider as FakerDTProvider
 from satellite._settings import EnvVar
@@ -50,12 +50,34 @@ class _StarBaseProvider(BaseProvider):
     def bytea(self) -> str:
         return self.text()  # Encoding happens in the format specifier
 
+    def _value_or_none(self, value: Any, p: float = 0.5) -> Optional[Any]:
+        """Return the value or None dependent on the probability"""
+        return value if self.generator.random.random() > p else None
+
+    def source_system(self) -> str:
+        """System which this row was created from"""
+        return self.random_element(["source_a", "source_b"])
+
+    def nhs_number(self) -> Optional[str]:
+        """NHS number is a 10 digit numeric value"""
+        return self._value_or_none(self.bothify(10 * "#"), p=0.1)
+
 
 class _StarDatetimeProvider(FakerDTProvider):
     def timestamptz(self) -> datetime:
         return self.date_time()
 
-    def date(self) -> date:
+    def valid_from(self) -> datetime:
+        """
+        Valid from is when EMAP star last updated this row. This is likely after ~2018
+        """
+        return datetime(2018, 1, 1) + timedelta(seconds=self.unix_time())
+
+    def stored_from(self) -> datetime:
+        """Valid from is when EMAP star first stored this row"""
+        return self.valid_from()
+
+    def date(self, **kwargs: Any) -> date:
         return self.date_between(
             date.fromisoformat("1970-01-01"), date.fromisoformat("2022-01-01")
         )

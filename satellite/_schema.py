@@ -100,17 +100,15 @@ class DatabaseSchema:
 
         logger.info(f"Adding table data: {table.name}")
 
-        string = ""
-        col_names = ",".join(col.name for col in table.non_pk_columns)
-
-        string += (
-            f"  INSERT INTO {self.schema_name}.{table.name} ({col_names}) VALUES \n"
+        column_names = ",".join(col.name for col in table.non_pk_columns)
+        string = (
+            f"  INSERT INTO {self.schema_name}.{table.name} ({column_names}) VALUES \n"
         )
 
         for i in range(table.n_rows):
-
             values = ",".join(
                 column.format_specifier % table.data[column][i]
+                if table.data[column][i] is not None else 'null'
                 for column in table.non_pk_columns
             )
             string += f"  ({values}),\n"
