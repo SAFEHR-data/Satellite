@@ -8,7 +8,15 @@ from satellite._log import logger
 class Column:
     name: str
     java_type: str
-    table_reference: Optional["Table"] = None
+    parent_table_name: str  # Table in which this column is present
+    table_reference: Optional["Table"] = None  # Table referenced by a foreign key
+
+    def __hash__(self):
+        return hash(self.name + self.parent_table_name)
+
+    def __repr__(self):
+        ref_table = "" if self.table_reference is None else f", table_reference={self.table_reference.name}"
+        return (f"Column({self.name}, type={self.sql_type}, parent_table={self.parent_table_name}{ref_table})")
 
     @property
     def sql_type(self) -> str:
@@ -32,9 +40,6 @@ class Column:
             )
             return "text"
 
-    def __hash__(self):
-        return hash(self.name)
-
     @property
     def format_specifier(self) -> str:
         if self.sql_type == "text":
@@ -48,7 +53,11 @@ class Column:
 
     @property
     def is_foreign_key(self) -> bool:
-        return self.table_reference is not None
+        return not self.is_primary_key and self.table_reference is not None
+
+    @property
+    def is_primary_key(self) -> bool:
+        return self.name == f"{self.parent_table_name}_id"
 
     def definition_in_schema(self, schema_name: str) -> str:
         """Return a string containing the name, type and references to other tables"""
@@ -62,15 +71,14 @@ class Column:
     def faker_method(self, fake: "Faker") -> Callable:
         """Faker method to generate synthetic/fake values for this column"""
 
-        if hasattr(fake, self.name):  # match for specific column e.g. mrn
+        if self.is_primary_key:
+            return lambda: None
+
+        elif hasattr(fake, self.name):  # match for specific column e.g. mrn
             return getattr(fake, self.name)
 
         elif self.is_foreign_key:
-
-            def _foreign_key_id():
-                return fake.pyint(1, self.table_reference.n_rows)
-
-            return _foreign_key_id
+            return lambda: fake.pyint(1, self.table_reference.n_rows)
 
         elif hasattr(fake, self.sql_type):  # match for the type of column
             return getattr(fake, self.sql_type)

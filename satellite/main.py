@@ -26,15 +26,8 @@ def cli() -> None:
 
 @cli.command()
 def print_create_command() -> None:
-    """
-    Print an SQL table create command for an EMAP Star schema. Required environment
-    variables:
-        - N_TABLE_ROWS
-        - FAKER_SEED
-        - STAR_SCHEMA_NAME
-        - POSTGRES_USER
-    """
-    logger.info("Printing schema + table create commands")
+    """Print an SQL table create command for an EMAP Star schem"""
+
     print(star.schema_create_command)
 
     for table in star.tables.topologically_sorted():
@@ -49,14 +42,14 @@ def print_create_command() -> None:
 def continuously_insert() -> None:
     """
     Continuously run row inserts into all tables at a frequency defined by INSERT_RATE
-    in rows per seconds. Required environment variables:
-        - POSTGRES_HOST
-        - POSTGRES_USER
-        - POSTGRES_PASSWORD
-        - INSERT_RATE
-        - FAKER_SEED
+    in rows per seconds
     """
-    time_delay = 1 / EnvVar("INSERT_RATE").unwrap_as(float)
+    try:
+        time_delay = 1 / EnvVar("INSERT_RATE").unwrap_as(float)
+    except ZeroDivisionError:
+        logger.info("Not inserting any rows. Insert rate was zero")
+        return
+
     logger.info(f"Running continuous inserts every {time_delay} seconds")
 
     def insert() -> None:
@@ -65,3 +58,49 @@ def continuously_insert() -> None:
             star.insert(table.fake_row())
 
     call_every_n_seconds(insert, num_seconds=time_delay)
+
+
+@cli.command()
+def continuously_update() -> None:
+    """
+    Continuously run row updates into all tables at a frequency defined by UPDATE_RATE
+    in rows per seconds
+    """
+    try:
+        time_delay = 1 / EnvVar("UPDATE_RATE").unwrap_as(float)
+    except ZeroDivisionError:
+        logger.info("Not updating any rows. Update rate was zero")
+        return
+
+    logger.info(f"Running continuous updates every {time_delay} seconds")
+
+    def update() -> None:
+        star.update_num_rows_in_tables()
+        for table in star.tables:
+            logger.info(f"Updating row from {table.name}")
+            star.update(table.randomised_existing_row())
+
+    call_every_n_seconds(update, num_seconds=time_delay)
+
+
+@cli.command()
+def continuously_delete() -> None:
+    """
+    Continuously run row deletes into all tables at a frequency defined by DELETE_RATE
+    in rows per seconds
+    """
+    try:
+        time_delay = 1 / EnvVar("DELETE_RATE").unwrap_as(float)
+    except ZeroDivisionError:
+        logger.info("Not deleting any rows. Delete rate was zero")
+        return
+
+    logger.info(f"Running continuous deletes every {time_delay} seconds")
+
+    def delete() -> None:
+        star.update_num_rows_in_tables()
+        for table in star.tables:
+            logger.info(f"Deleting row from {table.name}")
+            star.try_to_delete(table.random_existing_row())
+
+    call_every_n_seconds(delete, num_seconds=time_delay)

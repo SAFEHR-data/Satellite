@@ -1,8 +1,9 @@
 import psycopg2
+from psycopg2 import IntegrityError, DatabaseError
 from typing import Optional, Any
 
 from satellite._log import logger
-from satellite._tables import Row, Table, Tables
+from satellite._tables import Row, ExistingRow, Table, Tables
 
 
 class DatabaseSchema:
@@ -70,7 +71,7 @@ class DatabaseSchema:
         """Create a table for a set of data. Drop it if it exists"""
 
         columns_name_and_type = ", ".join(
-            [col.definition_in_schema(self._name) for col in table.columns]
+            [col.definition_in_schema(self._name) for col in table.non_pk_columns]
         )
         return (
             f"CREATE TABLE {self.schema_name}.{table.name} "
@@ -87,7 +88,7 @@ class DatabaseSchema:
         logger.info(f"Adding table data: {table.name}")
 
         string = ""
-        col_names = ",".join(col.name for col in table.columns)
+        col_names = ",".join(col.name for col in table.non_pk_columns)
 
         string += (
             f"  INSERT INTO {self.schema_name}.{table.name} ({col_names}) VALUES \n"
@@ -97,7 +98,7 @@ class DatabaseSchema:
 
             values = ",".join(
                 column.format_specifier % table.data[column][i]
-                for column in table.columns
+                for column in table.non_pk_columns
             )
             string += f"  ({values}),\n"
 
@@ -110,18 +111,53 @@ class DatabaseSchema:
         self._execute(query, values)
         return tuple(self._cursor.fetchone())
 
+    def _execute_and_commit(self, query: str, values: Optional[list] = None) -> None:
+        self._execute(query=query, values=values)
+        self._connection.commit()
+
     def insert(self, row: Row) -> None:
         """Insert a single row from a table"""
         assert self.exists
-        column_names = ", ".join(column.name for column in row.columns)
-        value_definitions = ",".join("%s" for _ in range(len(row.values)))
+        column_names = ", ".join(column.name for column in row.non_pk_columns)
+        value_definitions = ",".join("%s" for _ in range(len(row.non_pk_columns)))
 
-        self._execute(
+        self._execute_and_commit(
             f"INSERT INTO {self.schema_name}.{row.table_name} "
             f"({column_names}) VALUES ({value_definitions})",
-            values=[value for value in row.values]
+            values=[row.data[column] for column in row.non_pk_columns]
         )
-        self._connection.commit()
+
+    def update(self, row: ExistingRow) -> None:
+        """Update the values in a row that exists in a table already"""
+        assert self.exists and row.id is not None
+        col_names_and_values = ",".join(f"{c.name} = %s" for c in row.non_pk_columns)
+
+        self._execute_and_commit(
+            f"UPDATE {self.schema_name}.{row.table_name} SET {col_names_and_values} "
+            f"WHERE {row.pk_column.name} = {row.id};",
+            values=[row.data[column] for column in row.non_pk_columns]
+        )
+
+    def delete(self, row: ExistingRow) -> None:
+        """Delete a row that exists in the schema"""
+        assert self.exists
+
+        if row.id is None:
+            logger.warning("Primary key for delete was unspecified - skipping")
+            return
+
+        self._execute_and_commit(
+            f"DELETE FROM {self.schema_name}.{row.table_name} "
+            f"WHERE {row.pk_column.name} = {row.id};"
+        )
+
+    def try_to_delete(self, row: ExistingRow) -> None:
+
+        try:
+            self.delete(row=row)
+        except IntegrityError as e:
+            logger.warning(f"Failed to delete due to:\n{e}")
+            self._connection.rollback()
 
     def update_num_rows_in_tables(self) -> None:
         """Set the number of rows in each table"""

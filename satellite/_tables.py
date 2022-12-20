@@ -3,7 +3,6 @@ import networkx as nx
 
 from typing import List, Generator, Optional
 from pathlib import Path
-from faker import Faker
 
 from satellite._utils import camel_to_snake_case
 from satellite._settings import EnvVar
@@ -12,28 +11,66 @@ from satellite._column import Column
 from satellite._fake import fake
 
 
-class Row:
+class _TableChunk:
+    def __init__(self):
+        self.data = dict()  # Keyed with column names with a list of rows as a value
+
+    @property
+    def columns(self) -> List[Column]:
+        """All columns"""
+        return [column for column in self.data.keys()]
+
+    @property
+    def non_pk_columns(self) -> List[Column]:
+        """Columns that are not primary keys"""
+        return [column for column in self.data.keys() if not column.is_primary_key]
+
+    @property
+    def pk_column(self) -> Column:
+        """Primary key column"""
+        return next(column for column in self.columns if column.is_primary_key)
+
+
+class Row(_TableChunk):
     def __init__(self, table_name: str, columns: List[Column]):
+        super().__init__()
         self.table_name = table_name
-        self.columns = columns
-        self.values = []
+        self.data = {column: None for column in columns}
+
+    def add_fake_data(self) -> None:
+        for column in self.non_pk_columns:
+            function = column.faker_method(fake)
+            self.data[column] = function()
+
+    @property
+    def id(self) -> Optional[int]:
+        """Primary key of this row"""
+        return self.data[self.pk_column]
 
     @classmethod
     def with_fake_values(cls, table_name: str, columns: List[Column]) -> "Row":
         row = cls(table_name=table_name, columns=columns)
-        for col in row.columns:
-            function = col.faker_method(fake)
-            row.values.append(function())
-
+        row.add_fake_data()
         return row
 
 
-class Table:
+class NewRow(Row):
+    """Row with no primary key, used for inserts"""
+
+
+class ExistingRow(Row):
+
+    def __init__(self, table_name: str, columns: List[Column], primary_key_id: int = 0):
+        super().__init__(table_name=table_name, columns=columns)
+        self.data[self.pk_column] = primary_key_id
+
+
+class Table(_TableChunk):
     """Single table in a Star schema"""
 
     def __init__(self, name: str):
+        super().__init__()
         self.name = str(name)
-        self.data = dict()  # Keyed with column names with a list of rows as a value
         self._extends_temporal_core = False
         self.n_rows = int(EnvVar("N_TABLE_ROWS").or_default())
 
@@ -82,21 +119,29 @@ class Table:
             if attr_name.endswith("Id"):
                 java_type = "Long"
 
-            column = Column(name=camel_to_snake_case(attr_name), java_type=java_type)
+            column = Column(
+                name=camel_to_snake_case(attr_name),
+                java_type=java_type,
+                parent_table_name=self.name
+            )
 
             self.data[column] = []
 
+        logger.info(f"Created {self}")
         return self
+
+    def __repr__(self):
+        return f"Table({self.name}, columns = {self.columns}, n_rows = {self.n_rows})"
 
     def add_fake_data(self) -> None:
         logger.info(f"Adding fake data to {self.name}")
 
         for column, values in self.data.items():
 
-            if column.name == self.primary_key_name:
+            if column.is_primary_key:
                 continue  # This is just a serial index so no need to create fake values
 
-            logger.info(f"Creating random data for {column}")
+            logger.info(f"Creating {self.n_rows} row(s) of data to {column.name}")
             function = column.faker_method(fake)
 
             for _ in range(self.n_rows):
@@ -104,8 +149,20 @@ class Table:
 
         return None
 
-    def fake_row(self) -> Row:
-        return Row.with_fake_values(table_name=self.name, columns=self.columns)
+    def fake_row(self) -> NewRow:
+        return NewRow.with_fake_values(table_name=self.name, columns=self.columns)
+
+    def random_existing_row(self) -> ExistingRow:
+        return ExistingRow(
+            table_name=self.name,
+            columns=self.columns,
+            primary_key_id=None if self.n_rows == 0 else fake.pyint(1, self.n_rows),
+        )
+
+    def randomised_existing_row(self) -> ExistingRow:
+        row = self.random_existing_row()
+        row.add_fake_data()
+        return row
 
     def add_columns_from(self, table: "Table") -> None:
         """Add a set of columns to this table from another table"""
@@ -124,14 +181,6 @@ class Table:
                 )
             except StopIteration:
                 continue  # Not a foreign key referencing another tables PK
-
-    @property
-    def columns(self) -> List[Column]:
-        return [
-            column
-            for column in self.data.keys()
-            if column.name != self.primary_key_name
-        ]
 
     @property
     def primary_key_name(self) -> str:
@@ -180,11 +229,16 @@ class Tables(list):
 
     def topologically_sorted(self) -> Generator:
         """Tables in topologically sorted order given the foreign key references"""
+        logger.info("Sorting directed acyclic graph into topological order")
 
         dag = nx.DiGraph()
         dag.add_nodes_from(range(len(self)))
+
         for i, table in enumerate(self):
             for column in [col for col in table.columns if col.is_foreign_key]:
+                logger.info(
+                    f"{column.name:30s} is foreign key -> {column.table_reference.name}"
+                )
                 dag.add_edge(i, self.index(column.table_reference))
 
         for node in reversed(list(nx.topological_sort(dag))):
