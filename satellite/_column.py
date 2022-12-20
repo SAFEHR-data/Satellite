@@ -15,8 +15,12 @@ class Column:
         return hash(self.name + self.parent_table_name)
 
     def __repr__(self):
-        ref_table = "" if self.table_reference is None else f", table_reference={self.table_reference.name}"
-        return (f"Column({self.name}, type={self.sql_type}, parent_table={self.parent_table_name}{ref_table})")
+        ref_table = (
+            ""
+            if self.table_reference is None
+            else f", table_reference={self.table_reference.name}"
+        )
+        return f"Column({self.name}, type={self.sql_type}, parent_table={self.parent_table_name}{ref_table})"
 
     @property
     def sql_type(self) -> str:

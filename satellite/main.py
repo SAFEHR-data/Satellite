@@ -15,7 +15,7 @@ star = DatabaseSchema(
     tables=Tables.from_repo(
         repo_url="https://github.com/inform-health-informatics/Inform-DB",
         branch_name=EnvVar("INFORMDB_BRANCH_NAME").or_default(),
-    )
+    ),
 )
 
 

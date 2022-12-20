@@ -27,8 +27,11 @@ class _TableChunk:
 
     @property
     def data_columns(self) -> List[Column]:
-        return [column for column in self.columns
-                if not column.is_primary_key and not column.is_foreign_key]
+        return [
+            column
+            for column in self.columns
+            if not column.is_primary_key and not column.is_foreign_key
+        ]
 
     @property
     def pk_column(self) -> Column:
@@ -64,7 +67,6 @@ class NewRow(Row):
 
 
 class ExistingRow(Row):
-
     def __init__(self, table_name: str, columns: List[Column], primary_key_id: int = 0):
         super().__init__(table_name=table_name, columns=columns)
         self.data[self.pk_column] = primary_key_id
@@ -127,7 +129,7 @@ class Table(_TableChunk):
             column = Column(
                 name=camel_to_snake_case(attr_name),
                 java_type=java_type,
-                parent_table_name=self.name
+                parent_table_name=self.name,
             )
 
             self.data[column] = []
@@ -251,6 +253,3 @@ class Tables(list):
 
     def set_num_rows_from(self, schema: "DatabaseSchema") -> None:
         """Set the number of rows present in each table from a schema"""
-
-
-
