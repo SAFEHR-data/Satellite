@@ -26,6 +26,11 @@ class _TableChunk:
         return [column for column in self.data.keys() if not column.is_primary_key]
 
     @property
+    def data_columns(self) -> List[Column]:
+        return [column for column in self.columns
+                if not column.is_primary_key and not column.is_foreign_key]
+
+    @property
     def pk_column(self) -> Column:
         """Primary key column"""
         return next(column for column in self.columns if column.is_primary_key)
@@ -38,7 +43,7 @@ class Row(_TableChunk):
         self.data = {column: None for column in columns}
 
     def add_fake_data(self) -> None:
-        for column in self.non_pk_columns:
+        for column in self.data_columns:
             function = column.faker_method(fake)
             self.data[column] = function()
 

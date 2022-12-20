@@ -101,6 +101,6 @@ def continuously_delete() -> None:
         star.update_num_rows_in_tables()
         for table in star.tables:
             logger.info(f"Deleting row from {table.name}")
-            star.try_to_delete(table.random_existing_row())
+            star.delete(table.random_existing_row())
 
     call_every_n_seconds(delete, num_seconds=time_delay)

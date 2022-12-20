@@ -105,7 +105,11 @@ class DatabaseSchema:
         return string.rstrip(",\n") + ";"
 
     def _execute(self, query: str, values: Optional[list] = None) -> None:
-        self._cursor.execute(query=query, vars=values)
+        try:
+            self._cursor.execute(query=query, vars=values)
+        except IntegrityError as e:
+            logger.warning(f"Failed to execute due to:\n{e}")
+            self._connection.rollback()
 
     def _execute_and_fetch(self, query: str, values: Optional[list] = None) -> tuple:
         self._execute(query, values)
@@ -150,14 +154,6 @@ class DatabaseSchema:
             f"DELETE FROM {self.schema_name}.{row.table_name} "
             f"WHERE {row.pk_column.name} = {row.id};"
         )
-
-    def try_to_delete(self, row: ExistingRow) -> None:
-
-        try:
-            self.delete(row=row)
-        except IntegrityError as e:
-            logger.warning(f"Failed to delete due to:\n{e}")
-            self._connection.rollback()
 
     def update_num_rows_in_tables(self) -> None:
         """Set the number of rows in each table"""
