@@ -149,12 +149,15 @@ class DatabaseSchema:
     def update(self, row: ExistingRow) -> None:
         """Update the values in a row that exists in a table already"""
         assert self.exists and row.id is not None
-        col_names_and_values = ",".join(f"{c.name} = %s" for c in row.non_pk_columns)
+        if len(row.data_columns) == 0:
+            return  # Nothing to be updated
+
+        col_names_and_format = ",".join(f"{c.name} = %s" for c in row.data_columns)
 
         self._execute_and_commit(
-            f"UPDATE {self.schema_name}.{row.table_name} SET {col_names_and_values} "
+            f"UPDATE {self.schema_name}.{row.table_name} SET {col_names_and_format} "
             f"WHERE {row.pk_column.name} = {row.id};",
-            values=[row.data[column] for column in row.non_pk_columns],
+            values=[row.data[column] for column in row.data_columns],
         )
 
     def delete(self, row: ExistingRow) -> None:

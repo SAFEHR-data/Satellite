@@ -58,8 +58,8 @@ class Row(_TableChunk):
         self.table_name = table_name
         self.data = {column: None for column in columns}
 
-    def add_fake_data(self) -> None:
-        for column in self.data_columns:
+    def add_fake_data(self, skip_foreign_keys: bool = False) -> None:
+        for column in self.data_columns if skip_foreign_keys else self.non_pk_columns:
             function = column.faker_method(fake)
             self.data[column] = function()
 
@@ -182,7 +182,7 @@ class Table(_TableChunk):
 
     def randomised_existing_row(self) -> ExistingRow:
         row = self.random_existing_row()
-        row.add_fake_data()
+        row.add_fake_data(skip_foreign_keys=True)
         return row
 
     def add_columns_from(self, table: "Table") -> None:
