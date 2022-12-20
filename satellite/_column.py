@@ -11,10 +11,14 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Callable
+from typing import Optional, Callable, TYPE_CHECKING
 from dataclasses import dataclass
 
 from satellite._log import logger
+
+if TYPE_CHECKING:
+    from satellite._tables import Table
+    from satellite._fake import _Faker
 
 
 @dataclass
@@ -28,12 +32,14 @@ class Column:
         return hash(self.name + self.parent_table_name)
 
     def __repr__(self):
-        ref_table = (
+        string = f"Column({self.name}, type={self.sql_type} "
+        string += f"parent_table={self.parent_table_name}"
+        string += (
             ""
             if self.table_reference is None
             else f", table_reference={self.table_reference.name}"
         )
-        return f"Column({self.name}, type={self.sql_type}, parent_table={self.parent_table_name}{ref_table})"
+        return string
 
     @property
     def sql_type(self) -> str:
@@ -85,7 +91,7 @@ class Column:
         )
         return f"{self.name} {self.sql_type}{ref_str}"
 
-    def faker_method(self, fake: "Faker") -> Callable:
+    def faker_method(self, fake: "_Faker") -> Callable:
         """Faker method to generate synthetic/fake values for this column"""
 
         if self.is_primary_key:

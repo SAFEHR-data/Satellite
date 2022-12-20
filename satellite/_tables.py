@@ -189,7 +189,7 @@ class Table(_TableChunk):
         for column in table.columns:
             self.data[column] = []
 
-    def assign_foreign_keys(self, tables: "StarTables") -> None:
+    def assign_foreign_keys(self, tables: "Tables") -> None:
         """
         Given the columns present in this table determine those that are
         foreign keys
@@ -263,6 +263,3 @@ class Tables(list):
 
         for node in reversed(list(nx.topological_sort(dag))):
             yield self[int(node)]
-
-    def set_num_rows_from(self, schema: "DatabaseSchema") -> None:
-        """Set the number of rows present in each table from a schema"""

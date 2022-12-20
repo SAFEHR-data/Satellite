@@ -14,4 +14,4 @@
 ---
 ignored:
   - DL3008 # allow non-pinned versions
-  - DL3004 # using sudo
+  - DL3013 # pip packages without requirements.txt

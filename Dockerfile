@@ -39,15 +39,16 @@ RUN apt-get update && \
 # Download the tagged version of the Satellite repo if it is set otherwise use the current dir
 COPY . /Satellite
 
-RUN if [[ ! -z "$TAG" ]] ; then \
-      echo "Cloning Satellite repo on: $TAG"\
+RUN if [ "$TAG" != "" ] ; then \
+      echo "Cloning Satellite repo on: $TAG" && \
       rm -rf /Satellite && \
       git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
     fi && \
-    pip install --upgrade pip==22.3.1 && \
-    pip install --no-cache-dir /Satellite/
+    pip install --no-cache-dir --upgrade pip==22.3.1 \
 
-RUN satellite print-create-command > /docker-entrypoint-initdb.d/create.sql
+WORKDIR /Satellite
+RUN pip install --no-cache-dir /Satellite/ && \
+    satellite print-create-command > /docker-entrypoint-initdb.d/create.sql
 
 # Export the variables to the runtime of the container
 ENV POSTGRES_USER ${POSTGRES_USER}
@@ -63,5 +64,4 @@ ENV DELETE_RATE ${DELETE_RATE}
 ENV LANG=en_GB.UTF-8
 ENV LC_ALL=en_GB.UTF-8
 
-WORKDIR /Satellite
-CMD ./post_create_comands.sh
+ENTRYPOINT ["./Satellite/post_create_comands.sh"]

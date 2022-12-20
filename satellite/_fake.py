@@ -71,7 +71,7 @@ class _Faker(faker.Faker):
             self.add_provider(provider)
 
     @classmethod
-    def with_seed(cls, seed: int) -> "Faker":
+    def with_seed(cls, seed: int) -> "_Faker":
         """Faker instance with a defined seed"""
         _fake = cls()
         cls.seed(seed)  # Note: cannot set on an instance

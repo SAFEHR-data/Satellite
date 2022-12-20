@@ -1,10 +1,10 @@
 # Satellite
 
-Satellite is a Python package for creating and populating an 
+Satellite is a Python package for creating and populating an
 [EMAP star](https://github.com/inform-health-informatics/Inform-DB) schema
 with completely synthetic/fake data.
 
-The `Dockerfile` is suitable to build a postgres instance directly. Run as a 
+The `Dockerfile` is suitable to build a postgres instance directly. Run as a
 single container:
 ```bash
 docker build . -t satellite
