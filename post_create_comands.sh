@@ -1,3 +1,4 @@
+#!/bin/bash
 #  Copyright (c) University College London Hospitals NHS Foundation Trust
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +12,16 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
----
-self-hosted-runner:
-  # Labels of self-hosted runner labels in list of strings
-  labels:
-    - uclhdif-runner
+
+/usr/local/bin/docker-entrypoint.sh postgres &
+
+while pg_isready -U "${POSTGRES_USER:?}" ; ret=$? ; [ $ret -ne 0 ]; do
+  sleep 1 # second
+done
+
+echo "database is up"
+satellite continuously-insert &
+satellite continuously-update &
+satellite continuously-delete &
+
+wait

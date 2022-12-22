@@ -11,7 +11,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
----
-ignored:
-  - DL3008 # allow non-pinned versions
-  - DL3013 # pip packages without requirements.txt
+import logging
+import coloredlogs
+
+logger = logging.getLogger(__name__)
+coloredlogs.install(level=logging.INFO, logger=logger)

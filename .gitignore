@@ -1,3 +1,5 @@
 .idea/
 star_repo/
 __pycache__/
+build/
+satellite.egg-info/
