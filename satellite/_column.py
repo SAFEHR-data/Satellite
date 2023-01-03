@@ -33,14 +33,13 @@ class Column:
         return hash(self.name + self.parent_table_name)
 
     def __repr__(self):
-        string = f"Column({self.name}, type={self.sql_type} "
-        string += f"parent_table={self.parent_table_name}"
-        string += (
+        suffix = (
             " )"
             if self.table_reference is None
             else f", table_reference={self.table_reference.name})"
         )
-        return string
+        return (f"Column({self.name}, type={self.sql_type} "
+                f"parent_table={self.parent_table_name}{suffix}")
 
     @property
     def sql_type(self) -> str:

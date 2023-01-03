@@ -107,6 +107,10 @@ class Row(_TableChunk):
         """Primary key of this row"""
         return self[self.pk_column]
 
+    @id.setter
+    def id(self, value: int):
+        self[self.pk_column] = value
+
     @property
     def table_name(self) -> str:
         return self.name
@@ -134,7 +138,7 @@ class NewRow(Row):
 class ExistingRow(Row):
     def __init__(self, table_name: str, columns: List[Column], primary_key_id: int = 0):
         super().__init__(table_name=table_name, columns=columns)
-        self[self.pk_column] = primary_key_id
+        self.id = primary_key_id
 
 
 class Table(_TableChunk):

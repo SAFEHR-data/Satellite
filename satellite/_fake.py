@@ -150,7 +150,7 @@ class _StarPersonProvider(PersonProvider, _StarBaseProvider):
         return self._value_or_none(self.firstname(), p=0.5)
 
     def lastname(self) -> str:
-        return self.last_name().replace("'", r" ")
+        return self.last_name().replace("'", " ")
 
     def name(self) -> str:
         return self.text()
