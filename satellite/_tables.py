@@ -28,7 +28,7 @@ class _TableChunk:
     def __init__(self, name: str):
         self.name = str(name)
         self.n_rows = 0
-        self._data = dict()  # Keyed with column names with a list of rows as a value
+        self._data = dict()  # Keyed with columns with a list of rows as a value
 
     def __getitem__(self, key: Column) -> Any:
         return self._data[key]
@@ -83,9 +83,12 @@ class _TableChunk:
 
             function = column.faker_method()
 
-            values = self[column]
-            for _ in range(self.n_rows):
-                values.append(function())
+            if self.n_rows == 1:
+                self[column] = function()
+            else:
+                values = self[column]
+                for _ in range(self.n_rows):
+                    values.append(function())
 
         if self.has_override_faker_method and self.n_rows > 0:
             self._override_columns()
@@ -119,8 +122,9 @@ class Row(_TableChunk):
         return value[0] if len(value) == 1 else None
 
     def __setitem__(self, key: Column, value: Any):
-        assert not (isinstance(value, list) or isinstance(value, tuple))
-        self._data[key] = [value]
+        if not (isinstance(value, list) or isinstance(value, tuple)):
+            value = [value]
+        self._data[key] = list(value)
 
 
 class NewRow(Row):

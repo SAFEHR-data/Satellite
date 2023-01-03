@@ -24,7 +24,7 @@ ARG INFORMDB_BRANCH_NAME=develop
 ARG STAR_SCHEMA_NAME=star
 ARG FAKER_SEED=0
 ARG TIMEZONE="Europe/London"
-ARG TAG="0.0.6"
+ARG TAG="main"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -44,10 +44,10 @@ RUN if [ "$TAG" != "" ] ; then \
       rm -rf /Satellite && \
       git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
     fi && \
-    pip install --no-cache-dir --upgrade pip==22.3.1 \
+    pip install --no-cache-dir --upgrade pip==22.3.1
 
 WORKDIR /Satellite
-RUN pip install --no-cache-dir /Satellite/ && \
+RUN pip install --no-cache-dir . && \
     satellite print-create-command > /docker-entrypoint-initdb.d/create.sql
 
 # Export the variables to the runtime of the container
@@ -64,4 +64,4 @@ ENV DELETE_RATE ${DELETE_RATE}
 ENV LANG=en_GB.UTF-8
 ENV LC_ALL=en_GB.UTF-8
 
-ENTRYPOINT ["./Satellite/post_create_comands.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
