@@ -54,9 +54,9 @@ def print_create_command() -> None:
 @cli.command()
 @click.option(
     "--max-num-rows",
-    default=1E8,
+    default=1e8,
     type=int,
-    help="Number of rows above which no more are inserted"
+    help="Number of rows above which no more are inserted",
 )
 def continuously_insert(max_num_rows: int) -> None:
     """

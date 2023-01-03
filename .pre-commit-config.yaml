@@ -11,10 +11,10 @@ repos:
     rev: v0.991
     hooks:
       - id: mypy
-        exclude: ^tests/
-        args: [--strict]
+        args: [--ignore-missing-imports]
 
   - repo: https://github.com/pycqa/flake8
     rev: 6.0.0
     hooks:
     - id: flake8
+      args: [--max-line-length=88]

@@ -3,3 +3,4 @@ star_repo/
 __pycache__/
 build/
 satellite.egg-info/
+.mypy_cache/
