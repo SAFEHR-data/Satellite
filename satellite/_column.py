@@ -93,6 +93,7 @@ class Column:
         )
         return f"{self.name} {self.sql_type}{ref_str}"
 
+    @property
     def faker_method(self) -> Callable:
         """Faker method to generate synthetic/fake values for this column"""
 

@@ -81,7 +81,7 @@ class _TableChunk:
         for column in self.data_columns if skip_foreign_keys else self.non_pk_columns:
             logger.info(f"Creating {self.n_rows} row(s) of data to {column.name}")
 
-            function = column.faker_method()
+            function = column.faker_method
 
             if self.n_rows == 1:
                 self[column] = function()
