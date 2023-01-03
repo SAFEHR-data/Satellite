@@ -111,8 +111,8 @@ class DatabaseSchema:
 
         for i in range(table.n_rows):
             values = ",".join(
-                column.format_specifier % self._decode_if_bytes(table.data[column][i])
-                if table.data[column][i] is not None else 'null'
+                column.format_specifier % self._decode_if_bytes(table[column][i])
+                if table[column][i] is not None else 'null'
                 for column in table.non_pk_columns
             )
             string += f"  ({values}),\n"
@@ -143,7 +143,7 @@ class DatabaseSchema:
         self._execute_and_commit(
             f"INSERT INTO {self.schema_name}.{row.table_name} "
             f"({column_names}) VALUES ({value_definitions})",
-            values=[row.data[column] for column in row.non_pk_columns],
+            values=[row[column] for column in row.non_pk_columns],
         )
 
     def update(self, row: ExistingRow) -> None:
@@ -157,7 +157,7 @@ class DatabaseSchema:
         self._execute_and_commit(
             f"UPDATE {self.schema_name}.{row.table_name} SET {col_names_and_format} "
             f"WHERE {row.pk_column.name} = {row.id};",
-            values=[row.data[column] for column in row.data_columns],
+            values=[row[column] for column in row.data_columns],
         )
 
     def delete(self, row: ExistingRow) -> None:

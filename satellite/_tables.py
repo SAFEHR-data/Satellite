@@ -14,7 +14,7 @@
 import git
 import networkx as nx
 
-from typing import List, Generator, Optional
+from typing import List, Generator, Optional, Any
 from pathlib import Path
 
 from satellite._utils import camel_to_snake_case
@@ -25,18 +25,27 @@ from satellite._fake import fake
 
 
 class _TableChunk:
-    def __init__(self):
-        self.data = dict()  # Keyed with column names with a list of rows as a value
+    def __init__(self, name: str):
+        self.name = str(name)
+        self.n_rows = 0
+        self._data = dict()  # Keyed with column names with a list of rows as a value
+
+    def __getitem__(self, key: Column) -> Any:
+        return self._data[key]
+
+    def __setitem__(self, key: Column, value: Any):
+        assert isinstance(value, list) or isinstance(value, tuple)
+        self._data[key] = value
 
     @property
     def columns(self) -> List[Column]:
         """All columns"""
-        return [column for column in self.data.keys()]
+        return [column for column in self._data.keys()]
 
     @property
     def non_pk_columns(self) -> List[Column]:
         """Columns that are not primary keys"""
-        return [column for column in self.data.keys() if not column.is_primary_key]
+        return [column for column in self._data.keys() if not column.is_primary_key]
 
     @property
     def data_columns(self) -> List[Column]:
@@ -51,28 +60,67 @@ class _TableChunk:
         """Primary key column"""
         return next(column for column in self.columns if column.is_primary_key)
 
+    @property
+    def has_override_faker_method(self) -> bool:
+        """Does faker have a method suitable to generate a whole row of this table?"""
+        return hasattr(fake, self.name)
+
+    def _override_columns(self) -> None:
+        """Add data to this table with a table-specific method by generating rows"""
+
+        faker_method = getattr(fake, self.name)
+        rows = [faker_method() for _ in range(self.n_rows)]
+
+        for column in self.columns:
+            if column.name in rows[0]:
+                self[column] = [row[column.name] for row in rows]
+
+    def add_fake_data(self, skip_foreign_keys: bool = False) -> None:
+        logger.info(f"Adding fake data to {self.name}")
+
+        for column in self.data_columns if skip_foreign_keys else self.non_pk_columns:
+            logger.info(f"Creating {self.n_rows} row(s) of data to {column.name}")
+
+            function = column.faker_method()
+
+            values = self[column]
+            for _ in range(self.n_rows):
+                values.append(function())
+
+        if self.has_override_faker_method and self.n_rows > 0:
+            self._override_columns()
+
+        return None
+
 
 class Row(_TableChunk):
     def __init__(self, table_name: str, columns: List[Column]):
-        super().__init__()
-        self.table_name = table_name
-        self.data = {column: None for column in columns}
-
-    def add_fake_data(self, skip_foreign_keys: bool = False) -> None:
-        for column in self.data_columns if skip_foreign_keys else self.non_pk_columns:
-            function = column.faker_method(fake)
-            self.data[column] = function()
+        super().__init__(name=table_name)
+        self.n_rows = 1
+        self._data = {column: [] for column in columns}
 
     @property
     def id(self) -> Optional[int]:
         """Primary key of this row"""
-        return self.data[self.pk_column]
+        return self[self.pk_column]
+
+    @property
+    def table_name(self) -> str:
+        return self.name
 
     @classmethod
     def with_fake_values(cls, table_name: str, columns: List[Column]) -> "Row":
         row = cls(table_name=table_name, columns=columns)
         row.add_fake_data()
         return row
+
+    def __getitem__(self, key: Column) -> Optional[Any]:
+        value = self._data[key]
+        return value[0] if len(value) == 1 else None
+
+    def __setitem__(self, key: Column, value: Any):
+        assert not (isinstance(value, list) or isinstance(value, tuple))
+        self._data[key] = [value]
 
 
 class NewRow(Row):
@@ -82,15 +130,14 @@ class NewRow(Row):
 class ExistingRow(Row):
     def __init__(self, table_name: str, columns: List[Column], primary_key_id: int = 0):
         super().__init__(table_name=table_name, columns=columns)
-        self.data[self.pk_column] = primary_key_id
+        self[self.pk_column] = primary_key_id
 
 
 class Table(_TableChunk):
     """Single table in a Star schema"""
 
     def __init__(self, name: str):
-        super().__init__()
-        self.name = str(name)
+        super().__init__(name=name)
         self._extends_temporal_core = False
         self.n_rows = int(EnvVar("N_TABLE_ROWS").or_default())
 
@@ -146,29 +193,10 @@ class Table(_TableChunk):
                 parent_table_name=self.name,
             )
 
-            self.data[column] = []
+            self._data[column] = []
 
         logger.info(f"Created {self}")
         return self
-
-    def __repr__(self):
-        return f"Table({self.name}, columns = {self.columns}, n_rows = {self.n_rows})"
-
-    def add_fake_data(self) -> None:
-        logger.info(f"Adding fake data to {self.name}")
-
-        for column, values in self.data.items():
-
-            if column.is_primary_key:
-                continue  # This is just a serial index so no need to create fake values
-
-            logger.info(f"Creating {self.n_rows} row(s) of data to {column.name}")
-            function = column.faker_method(fake)
-
-            for _ in range(self.n_rows):
-                values.append(function())
-
-        return None
 
     def fake_row(self) -> NewRow:
         return NewRow.with_fake_values(table_name=self.name, columns=self.columns)
@@ -188,7 +216,7 @@ class Table(_TableChunk):
     def add_columns_from(self, table: "Table") -> None:
         """Add a set of columns to this table from another table"""
         for column in table.columns:
-            self.data[column] = []
+            self._data[column] = []
 
     def assign_foreign_keys(self, tables: "Tables") -> None:
         """
@@ -211,6 +239,9 @@ class Table(_TableChunk):
     def extends_temporal_core(self) -> bool:
         """Does this table extend i.e. have columns from a temporal core superclass?"""
         return self._extends_temporal_core
+
+    def __repr__(self):
+        return f"Table({self.name}, columns = {self.columns}, n_rows = {self.n_rows})"
 
 
 class Tables(list):

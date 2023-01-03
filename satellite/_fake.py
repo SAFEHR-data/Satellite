@@ -98,6 +98,48 @@ class _StarBaseProvider(BaseProvider):
     def comments() -> None:
         return None
 
+    @staticmethod
+    def comment() -> None:
+        return None
+
+    def consultation_type_code(self) -> str:
+        return f"CON{self.bothify('###')}"
+
+    @staticmethod
+    def consultation_type_name() -> None:
+        return None
+
+    @staticmethod
+    def clinical_information() -> None:
+        return None
+
+    def battery_code(self) -> str:
+        return self.bothify("??")
+
+    @staticmethod
+    def battery_name() -> None:
+        return None
+
+    @staticmethod
+    def standardised_code() -> None:
+        return None
+
+    @staticmethod
+    def standardised_vocabulary() -> None:
+        return None
+
+    @staticmethod
+    def presentation_datetime() -> None:  # Has override
+        return None
+
+    @staticmethod
+    def admission_datetime() -> None:  # Has override
+        return None
+
+    @staticmethod
+    def discharge_datetime() -> None:  # Has override
+        return None
+
 
 class _StarPersonProvider(PersonProvider, _StarBaseProvider):
 
@@ -146,6 +188,47 @@ class _StarDatetimeProvider(FakerDTProvider, _StarBaseProvider):
 
     def discharge_datetime(self) -> datetime:
         return self._value_or_none(self._recent_datetime(), p=0.1)
+
+    def visit_observation(self) -> dict:
+
+        rand_float = self.generator.random.random()  # in [0, 1)
+        data = {
+            "value_as_text": None,
+            "value_as_real": None,
+            "value_as_date": None
+        }
+
+        if rand_float < 0.2:
+            data["value_as_text"] = self.text()
+        elif rand_float < 0.8:
+            data["value_as_real"] = self.real()
+        else:
+            data["value_as_date"] = self.date()
+
+        return data
+
+    def hospital_visit(self) -> dict:
+
+        start_datetime = datetime(2018, 1, 1)
+        end_datetime = datetime(2023, 1, 1)
+
+        delta_seconds = end_datetime.timestamp() - start_datetime.timestamp()
+
+        def rand_num_seconds() -> timedelta:
+            return timedelta(seconds=self.generator.random.uniform(0, delta_seconds/3))
+
+        presentation_datetime = start_datetime + rand_num_seconds()
+        admission_datetime = presentation_datetime + rand_num_seconds()
+        discharge_datetime = self._value_or_none(
+            admission_datetime + rand_num_seconds(), p=0.2
+        )
+
+        data = {
+            "presentation_datetime": presentation_datetime,
+            "admission_datetime": admission_datetime,
+            "discharge_datetime": discharge_datetime
+        }
+        return data
 
 
 class _StarAddressProvider(AddressProvider):
