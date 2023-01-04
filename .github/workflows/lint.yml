@@ -40,9 +40,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Ensure copyright and license header are present
-        run: ./.github/linters/check_headers_exist.sh
-
       - name: Setup Python
         uses: actions/setup-python@v3
 
