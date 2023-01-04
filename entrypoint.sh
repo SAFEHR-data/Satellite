@@ -23,5 +23,4 @@ echo "database is up"
 satellite continuously-insert &
 satellite continuously-update &
 satellite continuously-delete &
-
 wait

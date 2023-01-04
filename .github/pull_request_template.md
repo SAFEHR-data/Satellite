@@ -13,3 +13,4 @@ update any impacted documentation.
 * [ ] An issue has been created for any pending work
 * [ ] Test pass
 * [ ] Documentation has been updated
+* [ ] Version has been bumped if required

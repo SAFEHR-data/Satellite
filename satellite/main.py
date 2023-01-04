@@ -67,7 +67,7 @@ def continuously_insert() -> None:
 
     def insert() -> None:
         star.update_num_rows_in_tables()
-        for table in star.tables:
+        for table in star.tables.topologically_sorted():
             star.insert(table.fake_row())
 
     call_every_n_seconds(insert, num_seconds=time_delay)

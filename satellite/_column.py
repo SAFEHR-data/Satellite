@@ -15,10 +15,11 @@ from typing import Optional, Callable, TYPE_CHECKING
 from dataclasses import dataclass
 
 from satellite._log import logger
+from satellite._fake import fake
+
 
 if TYPE_CHECKING:
     from satellite._tables import Table
-    from satellite._fake import _Faker
 
 
 @dataclass
@@ -32,14 +33,13 @@ class Column:
         return hash(self.name + self.parent_table_name)
 
     def __repr__(self):
-        string = f"Column({self.name}, type={self.sql_type} "
-        string += f"parent_table={self.parent_table_name}"
-        string += (
-            ""
+        suffix = (
+            " )"
             if self.table_reference is None
-            else f", table_reference={self.table_reference.name}"
+            else f", table_reference={self.table_reference.name})"
         )
-        return string
+        return (f"Column({self.name}, type={self.sql_type} "
+                f"parent_table={self.parent_table_name}{suffix}")
 
     @property
     def sql_type(self) -> str:
@@ -91,11 +91,15 @@ class Column:
         )
         return f"{self.name} {self.sql_type}{ref_str}"
 
-    def faker_method(self, fake: "_Faker") -> Callable:
+    def faker_method(self) -> Callable:
         """Faker method to generate synthetic/fake values for this column"""
 
         if self.is_primary_key:
             return lambda: None
+
+        elif hasattr(fake, (tc_method_name := f"{self.parent_table_name}_{self.name}")):
+            # match for a column in a defined table
+            return getattr(fake, tc_method_name)
 
         elif hasattr(fake, self.name):  # match for specific column e.g. mrn
             return getattr(fake, self.name)
