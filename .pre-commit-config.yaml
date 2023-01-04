@@ -11,6 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
+---
 fail_fast: true
 
 repos:
@@ -29,8 +30,8 @@ repos:
   - repo: https://github.com/pycqa/flake8
     rev: 6.0.0
     hooks:
-    - id: flake8
-      args: [--max-line-length=88]
+      - id: flake8
+        args: [--max-line-length=88]
 
   - repo: local
     hooks:
