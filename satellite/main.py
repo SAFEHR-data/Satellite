@@ -52,7 +52,13 @@ def print_create_command() -> None:
 
 
 @cli.command()
-def continuously_insert() -> None:
+@click.option(
+    "--max-num-rows",
+    default=1E8,
+    type=int,
+    help="Number of rows above which no more are inserted"
+)
+def continuously_insert(max_num_rows: int) -> None:
     """
     Continuously run row inserts into all tables at a frequency defined by INSERT_RATE
     in rows per seconds
@@ -68,7 +74,9 @@ def continuously_insert() -> None:
     def insert() -> None:
         star.update_num_rows_in_tables()
         for table in star.tables.topologically_sorted():
-            star.insert(table.fake_row())
+
+            if table.n_rows < max_num_rows:
+                star.insert(table.fake_row())
 
     call_every_n_seconds(insert, num_seconds=time_delay)
 
