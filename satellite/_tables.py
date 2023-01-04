@@ -14,7 +14,7 @@
 import git
 import networkx as nx
 
-from typing import List, Generator, Optional, Any
+from typing import List, Generator, Optional, Any, Dict
 from pathlib import Path
 
 from satellite._utils import camel_to_snake_case
@@ -28,14 +28,14 @@ class _TableChunk:
     def __init__(self, name: str):
         self.name = str(name)
         self.n_rows = 0
-        self._data = dict()  # Keyed with columns with a list of rows as a value
+        self._data: Dict[Column, list] = dict()
 
     def __getitem__(self, key: Column) -> Any:
         return self._data[key]
 
     def __setitem__(self, key: Column, value: Any):
         assert isinstance(value, list) or isinstance(value, tuple)
-        self._data[key] = value
+        self._data[key] = list(value)
 
     @property
     def columns(self) -> List[Column]:
@@ -81,7 +81,7 @@ class _TableChunk:
         for column in self.data_columns if skip_foreign_keys else self.non_pk_columns:
             logger.info(f"Creating {self.n_rows} row(s) of data to {column.name}")
 
-            function = column.faker_method()
+            function = column.faker_method
 
             if self.n_rows == 1:
                 self[column] = function()
@@ -116,7 +116,7 @@ class Row(_TableChunk):
         return self.name
 
     @classmethod
-    def with_fake_values(cls, table_name: str, columns: List[Column]) -> "Row":
+    def with_fake_values(cls, table_name: str, columns: List[Column]) -> Any:
         row = cls(table_name=table_name, columns=columns)
         row.add_fake_data()
         return row
@@ -136,7 +136,9 @@ class NewRow(Row):
 
 
 class ExistingRow(Row):
-    def __init__(self, table_name: str, columns: List[Column], primary_key_id: int = 0):
+    def __init__(
+        self, table_name: str, columns: List[Column], primary_key_id: Optional[int] = 0
+    ):
         super().__init__(table_name=table_name, columns=columns)
         self.id = primary_key_id
 
@@ -189,7 +191,7 @@ class Table(_TableChunk):
             # e.g. line = "private Instant storedFrom;" or "private Boolean x = false;"
             items = line.strip().rstrip(";").split()
             idx = -2 if "=" not in line else -4
-            java_type, attr_name = items[idx], items[idx+1]
+            java_type, attr_name = items[idx], items[idx + 1]
 
             # All attributes that end with Id are foreign keys, thus just ints
             if attr_name.endswith("Id"):

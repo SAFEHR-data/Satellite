@@ -18,7 +18,8 @@ dependencies = [
     "networkx==2.8.*",
     "click==8.1.*",
     "black==22.12.*",
-    "psycopg2-binary==2.9.*"
+    "psycopg2-binary==2.9.*",
+    "pytest==7.2.*"
 ]
 
 [project.scripts]

@@ -38,8 +38,10 @@ class Column:
             if self.table_reference is None
             else f", table_reference={self.table_reference.name})"
         )
-        return (f"Column({self.name}, type={self.sql_type} "
-                f"parent_table={self.parent_table_name}{suffix}")
+        return (
+            f"Column({self.name}, type={self.sql_type} "
+            f"parent_table={self.parent_table_name}{suffix}"
+        )
 
     @property
     def sql_type(self) -> str:
@@ -91,6 +93,7 @@ class Column:
         )
         return f"{self.name} {self.sql_type}{ref_str}"
 
+    @property
     def faker_method(self) -> Callable:
         """Faker method to generate synthetic/fake values for this column"""
 
@@ -105,7 +108,7 @@ class Column:
             return getattr(fake, self.name)
 
         elif self.is_foreign_key:
-            return lambda: fake.pyint(1, self.table_reference.n_rows)
+            return lambda: fake.pyint(1, self.table_reference.n_rows)  # type: ignore
 
         elif hasattr(fake, self.sql_type):  # match for the type of column
             return getattr(fake, self.sql_type)

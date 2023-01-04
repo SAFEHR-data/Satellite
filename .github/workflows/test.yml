@@ -32,5 +32,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Install Python
+        uses: actions/setup-python@v3
+
+      - name: Install Python dependencies
+        run: |
+          pip install .
+
+      - name: Run pytest
+        run: |
+          export FAKER_SEED=0 POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres
+          pytest
+
       - name: Docker build
+        # Test that the container can be built successfully
         run: docker build . -t satellite

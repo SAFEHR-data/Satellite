@@ -42,11 +42,11 @@ class EnvVar:
         """Raise a runtime error if the value is undefined and cast as a type"""
         return _type(self.unwrap())
 
-    def or_else(self, default: Any) -> str:
+    def or_else(self, default: Any) -> Any:
         """Return the value if set otherwise use the default value"""
         return default if self._value is None else self._value
 
-    def or_default(self) -> str:
+    def or_default(self) -> Any:
         """Return the value if it is set otherwise a default"""
 
         if self._value is not None:
@@ -57,5 +57,5 @@ class EnvVar:
 
         raise RuntimeError(f"Failed to find a default for {self._name}")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._value)

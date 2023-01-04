@@ -13,7 +13,7 @@
 # limitations under the License.
 import faker
 
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from datetime import datetime, date, timedelta
 from faker.providers import BaseProvider
 from faker.providers.person.en import Provider as PersonProvider
@@ -22,17 +22,17 @@ from faker.providers.date_time import Provider as FakerDTProvider
 from satellite._settings import EnvVar
 
 _ETHNICITIES = [
-            "Black African",
-            "Black Other",
-            "Chinese",
-            "Filipino",
-            "Indian",
-            "Irish Traveller",
-            "Mixed ethnic group",
-            "Roma",
-            "White",
-            "Any other ethnic group",
-            "Unknown",
+    "Black African",
+    "Black Other",
+    "Chinese",
+    "Filipino",
+    "Indian",
+    "Irish Traveller",
+    "Mixed ethnic group",
+    "Roma",
+    "White",
+    "Any other ethnic group",
+    "Unknown",
 ]
 
 
@@ -128,25 +128,12 @@ class _StarBaseProvider(BaseProvider):
     def standardised_vocabulary() -> None:
         return None
 
-    @staticmethod
-    def presentation_datetime() -> None:  # Has override
-        return None
-
-    @staticmethod
-    def admission_datetime() -> None:  # Has override
-        return None
-
-    @staticmethod
-    def discharge_datetime() -> None:  # Has override
-        return None
-
 
 class _StarPersonProvider(PersonProvider, _StarBaseProvider):
-
     def firstname(self) -> str:
         return self.first_name().replace("'", " ")
 
-    def middlename(self) -> str:
+    def middlename(self) -> Optional[str]:
         return self._value_or_none(self.firstname(), p=0.5)
 
     def lastname(self) -> str:
@@ -166,8 +153,9 @@ class _StarDatetimeProvider(FakerDTProvider, _StarBaseProvider):
 
     def _recent_datetime(self) -> datetime:
         delta_time = timedelta(
-            seconds=self.unix_time(start_datetime=datetime(2018, 1, 1),
-                                   end_datetime=datetime(2023, 1, 1))
+            seconds=self.unix_time(
+                start_datetime=datetime(2018, 1, 1), end_datetime=datetime(2023, 1, 1)
+            )
         )
         return datetime(1970, 1, 1) + delta_time
 
@@ -186,16 +174,16 @@ class _StarDatetimeProvider(FakerDTProvider, _StarBaseProvider):
             date.fromisoformat("1970-01-01"), date.fromisoformat("2022-01-01")
         )
 
-    def discharge_datetime(self) -> datetime:
+    def discharge_datetime(self) -> Optional[datetime]:
         return self._value_or_none(self._recent_datetime(), p=0.1)
 
     def visit_observation(self) -> dict:
 
         rand_float = self.generator.random.random()  # in [0, 1)
-        data = {
+        data: Dict[str, Any] = {
             "value_as_text": None,
             "value_as_real": None,
-            "value_as_date": None
+            "value_as_date": None,
         }
 
         if rand_float < 0.2:
@@ -215,7 +203,9 @@ class _StarDatetimeProvider(FakerDTProvider, _StarBaseProvider):
         delta_seconds = end_datetime.timestamp() - start_datetime.timestamp()
 
         def rand_num_seconds() -> timedelta:
-            return timedelta(seconds=self.generator.random.uniform(0, delta_seconds/3))
+            return timedelta(
+                seconds=self.generator.random.uniform(0, delta_seconds / 3)
+            )
 
         presentation_datetime = start_datetime + rand_num_seconds()
         admission_datetime = presentation_datetime + rand_num_seconds()
@@ -226,13 +216,12 @@ class _StarDatetimeProvider(FakerDTProvider, _StarBaseProvider):
         data = {
             "presentation_datetime": presentation_datetime,
             "admission_datetime": admission_datetime,
-            "discharge_datetime": discharge_datetime
+            "discharge_datetime": discharge_datetime,
         }
         return data
 
 
 class _StarAddressProvider(AddressProvider):
-
     def home_postcode(self) -> str:
         return self.postcode()
 
