@@ -76,10 +76,10 @@ class _TableChunk:
                 self[column] = [row[column.name] for row in rows]
 
     def add_fake_data(self, skip_foreign_keys: bool = False) -> None:
-        logger.info(f"Adding fake data to {self.name}")
+        logger.debug(f"Adding fake data to {self.name}")
 
         for column in self.data_columns if skip_foreign_keys else self.non_pk_columns:
-            logger.info(f"Creating {self.n_rows} row(s) of data to {column.name}")
+            logger.debug(f"Creating {self.n_rows} row(s) of data to {column.name}")
 
             function = column.faker_method
 

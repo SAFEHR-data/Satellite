@@ -23,6 +23,7 @@ from satellite._utils import call_every_n_seconds
 star = DatabaseSchema(
     name=EnvVar("STAR_SCHEMA_NAME").or_default(),
     host=EnvVar("POSTGRES_HOST").or_default(),
+    database_name=EnvVar("DATABASE_NAME").or_default(),
     username=EnvVar("POSTGRES_USER").unwrap(),
     password=EnvVar("POSTGRES_PASSWORD").unwrap(),
     tables=Tables.from_repo(
@@ -35,6 +36,11 @@ star = DatabaseSchema(
 @click.group()
 def cli() -> None:
     """Satellite command line interface"""
+
+
+@cli.command()
+def print_db_create_command() -> None:
+    print(f"CREATE DATABASE {star.database_name};")
 
 
 @cli.command()
@@ -98,7 +104,7 @@ def continuously_update() -> None:
     def update() -> None:
         star.update_num_rows_in_tables()
         for table in star.tables:
-            logger.info(f"Updating row from {table.name}")
+            logger.debug(f"Updating row from {table.name}")
             star.update(table.randomised_existing_row())
 
     call_every_n_seconds(update, num_seconds=time_delay)
@@ -121,7 +127,7 @@ def continuously_delete() -> None:
     def delete() -> None:
         star.update_num_rows_in_tables()
         for table in star.tables:
-            logger.info(f"Deleting row from {table.name}")
+            logger.debug(f"Deleting row from {table.name}")
             star.delete(table.random_existing_row())
 
     call_every_n_seconds(delete, num_seconds=time_delay)

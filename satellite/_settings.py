@@ -22,6 +22,7 @@ _default_values = {
     "INFORMDB_BRANCH_NAME": "master",
     "POSTGRES_HOST": "localhost",
     "N_TABLE_ROWS": "0",
+    "DATABASE_NAME": "emap",
 }
 
 

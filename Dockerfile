@@ -16,6 +16,7 @@ FROM postgres:15.0-bullseye
 # User definable arguments
 ARG POSTGRES_USER=postgres
 ARG POSTGRES_PASSWORD=postgres
+ARG DATABASE_NAME=emap
 ARG N_TABLE_ROWS=4
 ARG INSERT_RATE=0.3
 ARG UPDATE_RATE=0.2
@@ -48,12 +49,13 @@ RUN if [ "$TAG" != "" ] ; then \
 
 WORKDIR /Satellite
 RUN pip install --no-cache-dir . && \
-    satellite print-create-command > /docker-entrypoint-initdb.d/create.sql
+    satellite print-db-create-command > /docker-entrypoint-initdb.d/create.sql && \
+    satellite print-create-command >> /docker-entrypoint-initdb.d/create.sql
 
 # Export the variables to the runtime of the container
 ENV POSTGRES_USER ${POSTGRES_USER}
 ENV POSTGRES_PASSWORD ${POSTGRES_PASSWORD}
-ENV UPDATE_RATE ${UPDATE_RATE}
+ENV DATABASE_NAME ${DATABASE_NAME}
 ENV INFORMDB_BRANCH_NAME ${INFORMDB_BRANCH_NAME}
 ENV STAR_SCHEMA_NAME ${STAR_SCHEMA_NAME}
 ENV FAKER_SEED ${FAKER_SEED}
