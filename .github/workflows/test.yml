@@ -46,4 +46,4 @@ jobs:
 
       - name: Docker build
         # Test that the container can be built successfully
-        run: docker build . -t satellite
+        run: docker build . -t satellite --build-arg TAG=${{ github.head_ref }}
