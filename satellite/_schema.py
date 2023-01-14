@@ -26,6 +26,7 @@ class DatabaseSchema:
         self,
         name: str,
         tables: Tables,
+        database_name: str,
         host: Optional[str] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
@@ -33,12 +34,17 @@ class DatabaseSchema:
         self.tables = tables
         self._name = name
         self._host = host
+        self._database_name = database_name
         self._username = username
         self._password = password
 
         self._cursor: Any = None
         self._connection: Any = None
         self._try_and_connect()
+
+    @property
+    def database_name(self) -> str:
+        return self._database_name
 
     @property
     def schema_name(self) -> str:
@@ -53,6 +59,7 @@ class DatabaseSchema:
                 "a defined username for authorisation"
             )
         return (
+            rf"\connect {self.database_name}" + "\n"
             f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;\n"
             f"CREATE SCHEMA {self.schema_name} "
             f"AUTHORIZATION {self._username};\n"
@@ -73,7 +80,7 @@ class DatabaseSchema:
     def _try_and_connect(self) -> None:
         try:
             self._connection = psycopg2.connect(
-                f"dbname=postgres user={self._username} "
+                f"dbname={self._database_name} user={self._username} "
                 f"password={self._password} host={self._host}"
             )
             self._cursor = self._connection.cursor()

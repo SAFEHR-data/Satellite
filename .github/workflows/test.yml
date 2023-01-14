@@ -45,5 +45,7 @@ jobs:
           pytest
 
       - name: Docker build
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         # Test that the container can be built successfully
-        run: docker build . -t satellite
+        run: docker build . -t satellite --build-arg TAG="$HEAD_REF"
