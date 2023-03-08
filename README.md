@@ -7,7 +7,7 @@ Satellite is a Python package for creating and populating an
 [EMAP star](https://github.com/inform-health-informatics/Inform-DB) schema
 with completely synthetic/fake data.
 
-The `Dockerfile` is suitable to build a postgres instance directly but requires 
+The `Dockerfile` is suitable to build a postgres instance directly but requires
 a GitHub [PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
 with access to the Inform-DB repository. Run as a single container:
 ```bash
