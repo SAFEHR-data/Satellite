@@ -19,7 +19,7 @@ from satellite._tables import Tables
 from satellite._settings import EnvVar
 from satellite._utils import call_every_n_seconds
 
-REPO_URI = "github.com/inform-health-informatics/Inform-DB"
+REPO_URI = "github.com/UCLH-Foundry/Inform-DB"
 PAT = EnvVar("INFORMDB_PAT").unwrap()
 
 star = DatabaseSchema(

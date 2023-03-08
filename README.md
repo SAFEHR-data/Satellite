@@ -11,7 +11,7 @@ The `Dockerfile` is suitable to build a postgres instance directly but requires
 a GitHub [PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
 with access to the Inform-DB repository. Run as a single container:
 ```bash
-docker build . -t satellite --build-arg GITHUB_PAT=<ghb_XXXXX>
+docker build . -t satellite --build-arg INFORMDB_PAT=<ghb_XXXXX>
 docker run -it -p 5432:5432 satellite
 ```
 
@@ -27,6 +27,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        INFORMDB_PAT: <ghb_XXXXX>    # Personal access token with access to clone UCLH-Foundry/Inform-DB
         POSTGRES_USER: postgres      # Username to access the database
         POSTGRES_PASSWORD: postgres  # Password to access the database
         N_TABLE_ROWS: 5              # Number of rows present in each table initially
