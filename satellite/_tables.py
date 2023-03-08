@@ -148,7 +148,7 @@ class Table(_TableChunk):
 
     def __init__(self, name: str):
         super().__init__(name=name)
-        self._extends_temporal_core = False
+        self._extended_tables: List[str] = []
         self.n_rows = int(EnvVar("N_TABLE_ROWS").or_default())
 
     @classmethod
@@ -176,7 +176,11 @@ class Table(_TableChunk):
                 depth -= 1
 
             if f"class {filepath.stem}" in line:
-                self._extends_temporal_core = "extends TemporalCore" in line
+                if "extends TemporalCore" in line:
+                    self._extended_tables.append("temporal_core")
+                elif "extends AuditCore" in line:
+                    self._extended_tables += ["temporal_core", "audit_core"]
+
                 passed_class_definition = True
                 continue
 
@@ -246,9 +250,9 @@ class Table(_TableChunk):
         return f"{self.name}_id"
 
     @property
-    def extends_temporal_core(self) -> bool:
-        """Does this table extend i.e. have columns from a temporal core superclass?"""
-        return self._extends_temporal_core
+    def extended_table_names(self) -> list[str]:
+        """Tables which are inherited by this one i.e. their columns added"""
+        return self._extended_tables
 
     def __repr__(self):
         return f"Table({self.name}, columns = {self.columns}, n_rows = {self.n_rows})"
@@ -268,12 +272,13 @@ class Tables(list):
             _ = git.Repo.clone_from(url=repo_url, to_path=repo_path, branch=branch_name)
 
         self = cls()
-        temporal_core_superclass = Table(name="temporal_core")
+        superclasses = {}
 
         for path in Path("star_repo/inform-db/src/main").rglob("**/*.java"):
 
-            if path.name.endswith("TemporalCore.java"):
-                temporal_core_superclass = Table.from_java_file(path)
+            if path.name.endswith("Core.java"):
+                table = Table.from_java_file(path)
+                superclasses[table.name] = table
                 continue
 
             if any(path.name.endswith(suffix) for suffix in excluded_suffixes):
@@ -283,8 +288,8 @@ class Tables(list):
 
         for table in self:
             table.assign_foreign_keys(self)
-            if table.extends_temporal_core:
-                table.add_columns_from(temporal_core_superclass)
+            for extend_table_name in table.extended_table_names:
+                table.add_columns_from(superclasses[extend_table_name])
 
         logger.info(f"Created {len(self)} tables from repo")
         return self
