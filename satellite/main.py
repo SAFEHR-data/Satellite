@@ -19,6 +19,8 @@ from satellite._tables import Tables
 from satellite._settings import EnvVar
 from satellite._utils import call_every_n_seconds
 
+REPO_URI = "github.com/inform-health-informatics/Inform-DB"
+PAT = EnvVar("INFORMDB_PAT").unwrap()
 
 star = DatabaseSchema(
     name=EnvVar("STAR_SCHEMA_NAME").or_default(),
@@ -27,7 +29,7 @@ star = DatabaseSchema(
     username=EnvVar("POSTGRES_USER").unwrap(),
     password=EnvVar("POSTGRES_PASSWORD").unwrap(),
     tables=Tables.from_repo(
-        repo_url="https://github.com/inform-health-informatics/Inform-DB",
+        repo_url=f"https://{PAT}:x-oauth-basic@{REPO_URI}",
         branch_name=EnvVar("INFORMDB_BRANCH_NAME").or_default(),
     ),
 )
