@@ -38,10 +38,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
-# Download the tagged version of the Satellite repo if it is set otherwise use the current dir
+# Install package
 COPY . /Satellite
 
-RUN if [ "$TAG" != "" ] ; then \
+RUN if [ -d "/Satellite/satellite" ] ; then \
+      echo "Found satellite package. Not cloning"; \
+    else \
       echo "Cloning Satellite repo on: $TAG" && \
       rm -rf /Satellite && \
       git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
