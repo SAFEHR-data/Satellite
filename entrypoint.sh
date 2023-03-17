@@ -15,7 +15,7 @@
 
 /usr/local/bin/docker-entrypoint.sh postgres &
 
-while pg_isready -U "${POSTGRES_USER:?}" ; ret=$? ; [ $ret -ne 0 ]; do
+while [ "$(satellite schema-exists)" = "False" ]; do
   sleep 1 # second
 done
 

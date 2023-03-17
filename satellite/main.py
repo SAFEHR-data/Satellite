@@ -136,3 +136,8 @@ def continuously_delete() -> None:
             star.delete(table.random_existing_row())
 
     call_every_n_seconds(delete, num_seconds=time_delay)
+
+
+@cli.command()
+def schema_exists() -> None:
+    return print(star.exists)
