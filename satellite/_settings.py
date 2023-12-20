@@ -19,7 +19,7 @@ from typing import Any
 _default_values = {
     "STAR_SCHEMA_NAME": "star",
     "FAKER_SEED": "0",
-    "INFORMDB_BRANCH_NAME": "master",
+    "EMAP_BRANCH_NAME": "main",
     "POSTGRES_HOST": "localhost",
     "N_TABLE_ROWS": "0",
     "DATABASE_NAME": "emap",

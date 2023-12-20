@@ -19,11 +19,7 @@ from satellite._tables import Tables
 from satellite._settings import EnvVar
 from satellite._utils import call_every_n_seconds
 
-PAT = EnvVar("INFORMDB_PAT").unwrap()
-if PAT.startswith("github_pat"):  # is a fine-grained token
-    REPO_URL = f"https://oauth2:{PAT}@github.com/UCLH-Foundry/Inform-DB"
-else:
-    REPO_URL = f"https://{PAT}:x-oauth-basic@github.com/UCLH-Foundry/Inform-DB"
+REPO_URL = f"https://github.com/UCLH-DHCT/emap"
 
 star = DatabaseSchema(
     name=EnvVar("STAR_SCHEMA_NAME").or_default(),
@@ -33,7 +29,7 @@ star = DatabaseSchema(
     password=EnvVar("POSTGRES_PASSWORD").unwrap(),
     tables=Tables.from_repo(
         repo_url=REPO_URL,
-        branch_name=EnvVar("INFORMDB_BRANCH_NAME").or_default(),
+        branch_name=EnvVar("EMAP_BRANCH_NAME").or_default(),
     ),
 )
 
