@@ -41,7 +41,7 @@ def cli() -> None:
 
 @cli.command()
 def print_db_create_command() -> None:
-    print(f"CREATE DATABASE {star.database_name}; ")
+    print(f"CREATE DATABASE {star.database_name};")
 
 
 @cli.command()

@@ -303,7 +303,9 @@ class Tables(list):
 
         for i, table in enumerate(self):
             for column in [col for col in table.columns if col.is_foreign_key]:
-                logger.info(f"{column.name} is a fk -> {column.table_reference.name}")
+                logger.info(
+                    f"{column.name:30s} is foreign key -> {column.table_reference.name}"
+                )
                 dag.add_edge(i, self.index(column.table_reference))
 
         for node in reversed(list(nx.topological_sort(dag))):
