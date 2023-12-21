@@ -274,7 +274,7 @@ class Tables(list):
         self = cls()
         superclasses = {}
 
-        for path in Path("star_repo/inform-db/src/main").rglob("**/*.java"):
+        for path in Path("star_repo/emap-star/emap-star/src/main").rglob("**/*.java"):
 
             if path.name.endswith("Core.java"):
                 table = Table.from_java_file(path)
