@@ -85,7 +85,7 @@ class _StarBaseProvider(BaseProvider):
         return self.random_element(["UNKNOWN", "M", "F"])
 
     def location_string(self) -> str:
-        return f"T{self.random_int(0, 99):02d}-B{self.random_int(0, 99):02d}"
+        return f"T{self.random_int(0, 99): 02d}-B{self.random_int(0, 99): 02d}"
 
     def arrival_method(self) -> Optional[str]:
         value = self.random_element(["Ambulance", "Walk in"])

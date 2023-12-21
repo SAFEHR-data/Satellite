@@ -60,9 +60,9 @@ class DatabaseSchema:
             )
         return (
             rf"\connect {self.database_name}" + "\n"
-            f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE;\n"
+            f"DROP SCHEMA IF EXISTS {self.schema_name} CASCADE; \n"
             f"CREATE SCHEMA {self.schema_name} "
-            f"AUTHORIZATION {self._username};\n"
+            f"AUTHORIZATION {self._username}; \n"
         )
 
     @property
@@ -73,7 +73,7 @@ class DatabaseSchema:
 
         result = self._execute_and_fetch(
             f"SELECT schema_name FROM information_schema.schemata "
-            f"  WHERE schema_name = '{self.schema_name}';"
+            f"  WHERE schema_name = '{self.schema_name}'; "
         )
         return self.schema_name in result
 
@@ -123,7 +123,7 @@ class DatabaseSchema:
                 else "null"
                 for column in table.non_pk_columns
             )
-            string += f"  ({values}),\n"
+            string += f"  ({values}), \n"
 
         return string.rstrip(",\n") + ";"
 
@@ -131,7 +131,7 @@ class DatabaseSchema:
         try:
             self._cursor.execute(query=query, vars=values)
         except IntegrityError as e:
-            logger.warning(f"Failed to execute due to:\n{e}")
+            logger.warning(f"Failed to execute due to: \n{e}")
             self._connection.rollback()
 
     def _execute_and_fetch(self, query: str, values: Optional[list] = None) -> tuple:
@@ -164,7 +164,7 @@ class DatabaseSchema:
 
         self._execute_and_commit(
             f"UPDATE {self.schema_name}.{row.table_name} SET {col_names_and_format} "
-            f"WHERE {row.pk_column.name} = {row.id};",
+            f"WHERE {row.pk_column.name} = {row.id}; ",
             values=[row[column] for column in row.data_columns],
         )
 
@@ -178,7 +178,7 @@ class DatabaseSchema:
 
         self._execute_and_commit(
             f"DELETE FROM {self.schema_name}.{row.table_name} "
-            f"WHERE {row.pk_column.name} = {row.id};"
+            f"WHERE {row.pk_column.name} = {row.id}; "
         )
 
     def update_num_rows_in_tables(self) -> None:
