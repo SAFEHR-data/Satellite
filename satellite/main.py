@@ -21,9 +21,9 @@ from satellite._utils import call_every_n_seconds
 
 PAT = EnvVar("INFORMDB_PAT").unwrap()
 if PAT.startswith("github_pat"):  # is a fine-grained token
-    REPO_URL = f"https://oauth2:{PAT}@github.com/UCLH-Foundry/Inform-DB"
+    REPO_URL = f"https://oauth2:{PAT}@github.com/SAFEHR-data/Inform-DB"
 else:
-    REPO_URL = f"https://{PAT}:x-oauth-basic@github.com/UCLH-Foundry/Inform-DB"
+    REPO_URL = f"https://{PAT}:x-oauth-basic@github.com/SAFEHR-data/Inform-DB"
 
 star = DatabaseSchema(
     name=EnvVar("STAR_SCHEMA_NAME").or_default(),

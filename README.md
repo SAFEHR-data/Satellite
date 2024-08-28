@@ -27,7 +27,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        INFORMDB_PAT: <ghb_XXXXX>    # Personal access token with access to clone UCLH-Foundry/Inform-DB
+        INFORMDB_PAT: <ghb_XXXXX>    # Personal access token with access to clone SAFEHR-data/Inform-DB
         POSTGRES_USER: postgres      # Username to access the database
         POSTGRES_PASSWORD: postgres  # Password to access the database
         N_TABLE_ROWS: 5              # Number of rows present in each table initially
