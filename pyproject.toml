@@ -29,7 +29,7 @@ satellite = "satellite.main:cli"
 packages = ["satellite"]
 
 [project.urls]
-"Homepage" = "https://github.com/UCLH-Foundry/Satellite"
+"Homepage" = "https://github.com/SAFEHR-data/Satellite"
 
 [build-system]
 requires = ["setuptools>=61.0"]
