@@ -45,7 +45,7 @@ RUN if [ -d "/Satellite/satellite" ] ; then \
     else \
       echo "Cloning Satellite repo on: $TAG" && \
       rm -rf /Satellite && \
-      git clone --depth 1 --branch ${TAG} https://github.com/UCLH-DIF/Satellite.git ;\
+      git clone --depth 1 --branch ${TAG} https://github.com/SAFEHR-data/Satellite.git ;\
     fi && \
     pip install --no-cache-dir --upgrade pip==22.3.1
 
