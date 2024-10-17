@@ -1,7 +1,7 @@
 # Satellite
 
 Satellite is a Python package for creating and populating an
-[EMAP star](https://github.com/UCLH-DHCT/emap/tree/main/emap-star) schema
+[EMAP star](https://github.com/SAFEHR-data/emap/tree/main/emap-star) schema
 with completely synthetic/fake data.
 
 The `Dockerfile` is suitable to build a postgres instance directly
