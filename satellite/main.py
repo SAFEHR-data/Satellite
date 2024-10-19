@@ -19,7 +19,7 @@ from satellite._tables import Tables
 from satellite._settings import EnvVar
 from satellite._utils import call_every_n_seconds
 
-REPO_URL = "https://github.com/UCLH-DHCT/emap"
+REPO_URL = "https://github.com/SAFEHR-data/emap"
 
 star = DatabaseSchema(
     name=EnvVar("STAR_SCHEMA_NAME").or_default(),
