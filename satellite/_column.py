@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from satellite._log import logger
 from satellite._fake import fake
 
-
 if TYPE_CHECKING:
     from satellite._tables import Table
 

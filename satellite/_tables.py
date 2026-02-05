@@ -108,7 +108,7 @@ class Row(_TableChunk):
         return self[self.pk_column]
 
     @id.setter
-    def id(self, value: int):
+    def id(self, value: Optional[int]):
         self[self.pk_column] = value
 
     @property

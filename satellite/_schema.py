@@ -118,9 +118,11 @@ class DatabaseSchema:
 
         for i in range(table.n_rows):
             values = ",".join(
-                column.sql_marshal(self._decode_if_bytes(table[column][i]))
-                if table[column][i] is not None
-                else "null"
+                (
+                    column.sql_marshal(self._decode_if_bytes(table[column][i]))
+                    if table[column][i] is not None
+                    else "null"
+                )
                 for column in table.non_pk_columns
             )
             string += f"  ({values}),\n"

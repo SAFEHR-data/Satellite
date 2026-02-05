@@ -17,7 +17,7 @@ dependencies = [
     "coloredlogs==15.0.*",
     "networkx==2.8.*",
     "click==8.1.*",
-    "black==22.12.*",
+    "black==26.1.*",
     "psycopg2-binary==2.9.*",
     "pytest==7.2.*"
 ]
