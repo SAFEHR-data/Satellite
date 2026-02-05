@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Optional, Callable, Any, TYPE_CHECKING
 from dataclasses import dataclass
 
 from satellite._log import logger
@@ -54,6 +54,7 @@ class Column:
             "double": "real",
             "localdate": "date",
             "byte[]": "bytea",
+            "double[]": "real[]",
         }
 
         if self.java_type.lower() in java_to_sql_type_map:
@@ -65,16 +66,17 @@ class Column:
             )
             return "text"
 
-    @property
-    def format_specifier(self) -> str:
+    def sql_marshal(self, value: Any) -> str:
         if self.sql_type == "text":
-            return "'%s'"
+            return f"'{value}'"
         elif self.sql_type == "timestamptz" or self.sql_type == "date":
-            return "timestamp '%s'"
+            return f"timestamp '{value}'"
         elif self.sql_type == "bytea":
-            return "E'%s'"
+            return f"E'{value}'"
+        elif self.sql_type == "real[]":
+            return f"ARRAY {str(value)}"
 
-        return "%s"
+        return str(value)
 
     @property
     def is_foreign_key(self) -> bool:
@@ -114,5 +116,5 @@ class Column:
             return getattr(fake, self.sql_type)
 
         else:
-            logger.error(f"Have no provider for {self.sql_type}")
+            logger.error(f"Have no provider for {self.sql_type} in column {self.name}")
             return fake.default

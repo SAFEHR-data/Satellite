@@ -89,14 +89,14 @@ class DatabaseSchema:
 
     def empty_table_create_command_for(self, table: Table) -> str:
         """Create a table for a set of data. Drop it if it exists"""
-
-        columns_name_and_type = ", ".join(
-            [col.definition_in_schema(self._name) for col in table.non_pk_columns]
-        )
+        non_pk_columns = ""
+        if len(table.non_pk_columns) > 0:
+            non_pk_columns += ", " + ", ".join(
+                [col.definition_in_schema(self._name) for col in table.non_pk_columns]
+            )
         return (
-            f"CREATE TABLE {self.schema_name}.{table.name} "
-            f"({table.primary_key_name} serial PRIMARY KEY, "
-            f"{columns_name_and_type});"
+            f"CREATE TABLE {self.schema_name}.{table.name}"
+            f"({table.primary_key_name} serial PRIMARY KEY{non_pk_columns});"
         )
 
     @staticmethod
@@ -118,7 +118,7 @@ class DatabaseSchema:
 
         for i in range(table.n_rows):
             values = ",".join(
-                column.format_specifier % self._decode_if_bytes(table[column][i])
+                column.sql_marshal(self._decode_if_bytes(table[column][i]))
                 if table[column][i] is not None
                 else "null"
                 for column in table.non_pk_columns

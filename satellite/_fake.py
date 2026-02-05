@@ -128,6 +128,9 @@ class _StarBaseProvider(BaseProvider):
     def standardised_vocabulary() -> None:
         return None
 
+    def values_array(self) -> list[float]:
+        return [self.real() for _ in range(10)]
+
 
 class _StarPersonProvider(PersonProvider, _StarBaseProvider):
     def firstname(self) -> str:
