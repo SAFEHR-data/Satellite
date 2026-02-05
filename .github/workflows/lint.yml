@@ -49,7 +49,7 @@ jobs:
           extra_args: --all-files
 
       - name: Lint code base
-        uses: github/super-linter/slim@v8
+        uses: super-linter/super-linter/slim@v8
         env:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: main
