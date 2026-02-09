@@ -108,7 +108,7 @@ class Row(_TableChunk):
         return self[self.pk_column]
 
     @id.setter
-    def id(self, value: int):
+    def id(self, value: Optional[int]):
         self[self.pk_column] = value
 
     @property
@@ -206,7 +206,6 @@ class Table(_TableChunk):
                 java_type=java_type,
                 parent_table_name=self.name,
             )
-
             self._data[column] = []
 
         logger.info(f"Created {self}")
@@ -264,7 +263,12 @@ class Tables(list):
     @classmethod
     def from_repo(cls, repo_url: str, branch_name: str) -> "Tables":
         """Create a list of tables by traversing files from a cloned git repo"""
-        excluded_suffixes = ["Core.java", "info.java", "TemporalFrom.java"]
+        excluded_suffixes = [
+            "Core.java",
+            "info.java",
+            "TemporalFrom.java",
+            "WaveformArray.java",
+        ]
         repo_path = Path("star_repo")
 
         if not repo_path.exists():

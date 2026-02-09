@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 # limitations under the License.
-FROM postgres:15.0-bullseye
+FROM postgres:17
 
 # User definable arguments
 ARG POSTGRES_USER=postgres
@@ -32,7 +32,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # OS setup
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
-    procps ca-certificates locales python3.9-dev python3-pip git && \
+    procps ca-certificates locales pipx git && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -46,11 +46,11 @@ RUN if [ -d "/Satellite/satellite" ] ; then \
       echo "Cloning Satellite repo on: $TAG" && \
       rm -rf /Satellite && \
       git clone --depth 1 --branch ${TAG} https://github.com/SAFEHR-data/Satellite.git ;\
-    fi && \
-    pip install --no-cache-dir --upgrade pip==22.3.1
+    fi
 
+ENV PATH="$PATH:/root/.local/bin"
 WORKDIR /Satellite
-RUN pip install --no-cache-dir . && \
+RUN pipx install . && \
     satellite print-db-create-command > /docker-entrypoint-initdb.d/create.sql && \
     satellite print-create-command >> /docker-entrypoint-initdb.d/create.sql
 

@@ -15,7 +15,6 @@ import os
 
 from typing import Any
 
-
 _default_values = {
     "STAR_SCHEMA_NAME": "star",
     "FAKER_SEED": "0",

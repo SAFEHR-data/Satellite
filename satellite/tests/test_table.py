@@ -16,7 +16,6 @@ import tempfile
 from pathlib import Path
 from satellite._tables import Table
 
-
 MINIMAL_TABLE_JAVA_FILE_LINES = (
     "@Entity",
     "@Table",

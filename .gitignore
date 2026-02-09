@@ -6,3 +6,5 @@ satellite.egg-info/
 .mypy_cache/
 .pytest_cache/
 .DS_Store
+.vscode
+tmp*
